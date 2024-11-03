@@ -1,0 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poetsen+One&family=Ubuntu:wght@300;400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 255 255 255;
+  --foreground: 0 0 0;
+  --primary: 67 98 40;
+  --primary-light: 224 240 187;
+  --primary-dark: 33 48 20;
+  --secondary: 103 58 183;
+  --secondary-light: 149 117 205;
+  --secondary-dark: 69 39 160;
+  --border: 224 240 187;
+  --input: 224 240 187;
+  --ring: 67 98 40;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  body {
+    @apply text-foreground font-ubuntu;
+    background-image: url('https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&q=80');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-poetsen;
+  }
+
+  .site-title {
+    @apply font-dancing-script;
+  }
+}
+
+@layer components {
+  .card-glass {
+    @apply bg-primary-light/40 backdrop-blur-md border border-primary-light/50 shadow-2xl;
+  }
+
+  .section-glass {
+    @apply bg-primary-light/40 backdrop-blur-md border-primary-light/50;
+  }
+
+  .header-glass {
+    @apply bg-primary-dark/95 backdrop-blur-md border-b border-primary-light/20;
+  }
+
+  .text-on-glass {
+    @apply text-primary-dark font-medium;
+  }
+
+  .text-on-dark {
+    @apply text-white font-medium;
+  }
+
+  .card-glass-hover {
+    @apply bg-primary-light/50 transition-all duration-200;
+  }
+
+  .input-field {
+    @apply bg-white/90 border-primary/20 focus:border-primary focus:ring-primary;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply bg-white/80 backdrop-blur-sm border-primary-light/30 focus:border-primary-dark/50 focus:ring-primary-dark/30;
+  }
+}
