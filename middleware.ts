@@ -1,35 +1,12 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+// middleware.ts
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 
-const publicRoutes = ["/", "/sign-in(.*)", "/sign-up(.*)", "/api/trpc(.*)"];
-const ignoredRoutes = ["/((?!api|trpc))(_next|.+\\.[\\w]+$)", "/favicon.ico"];
+const isPublicRoute = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)", "/api/trpc(.*)"])
 
-export default clerkMiddleware((auth, req) => {
-  const isPublicRoute = publicRoutes.some(pattern => 
-    new RegExp(`^${pattern}$`).test(req.nextUrl.pathname)
-  );
-
-  const isIgnoredRoute = ignoredRoutes.some(pattern => 
-    new RegExp(`^${pattern}$`).test(req.nextUrl.pathname)
-  );
-
-  if (isIgnoredRoute) {
-    return NextResponse.next();
-  }
-
-  if (!auth.userId && !isPublicRoute) {
-    const signInUrl = new URL('/sign-in', req.url);
-    signInUrl.searchParams.set('redirect_url', req.url);
-    return NextResponse.redirect(signInUrl);
-  }
-
-  return NextResponse.next();
-});
+export default clerkMiddleware(async (auth, request) => {
+  if (!isPublicRoute(request)) await auth().protect()
+})
 
 export const config = {
-  matcher: [
-    "/((?!.+\\.[\\w]+$|_next).*)",
-    "/",
-    "/(api|trpc)(.*)"
-  ],
-};
+  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"]
+}

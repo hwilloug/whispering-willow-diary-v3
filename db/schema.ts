@@ -7,9 +7,8 @@ import {
   boolean,
   date,
   json,
-  primaryKey
 } from "drizzle-orm/pg-core";
-
+import { relations } from 'drizzle-orm';
 // User settings for customizable suggestions
 export const userSettings = pgTable('user_settings', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -40,14 +39,14 @@ export const journalEntries = pgTable('journal_entries', {
 export const entryActivities = pgTable('entry_activities', {
   entryId: uuid('entry_id').notNull().references(() => journalEntries.id, { onDelete: 'cascade' }),
   activity: text('activity').notNull(),
-  id: primaryKey(uuid('id').defaultRandom()),
+  id: uuid('id').defaultRandom().primaryKey(),
 });
 
 // Feelings logged for each journal entry
 export const entryFeelings = pgTable('entry_feelings', {
   entryId: uuid('entry_id').notNull().references(() => journalEntries.id, { onDelete: 'cascade' }),
   feeling: text('feeling').notNull(),
-  id: primaryKey(uuid('id').defaultRandom()),
+  id: uuid('id').defaultRandom().primaryKey(),
 });
 
 // Symptoms logged for each journal entry
@@ -56,7 +55,7 @@ export const entrySymptoms = pgTable('entry_symptoms', {
   symptom: text('symptom').notNull(),
   severity: integer('severity'), // 1-10 scale
   category: text('category').notNull(), // 'depression', 'anxiety', 'mania', 'ocd', 'adhd'
-  id: primaryKey(uuid('id').defaultRandom()),
+  id: uuid('id').defaultRandom().primaryKey(),
 });
 
 // Substance use tracking for each journal entry
@@ -93,3 +92,39 @@ export const reminders = pgTable('reminders', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+// Relations
+export const journalEntriesRelations = relations(journalEntries, ({ many }: { many: any }) => ({
+  activities: many(entryActivities),
+  feelings: many(entryFeelings),
+  symptoms: many(entrySymptoms),
+  substances: many(substanceUse)
+}));
+
+export const entryActivitiesRelations = relations(entryActivities, ({ one }: { one: any }) => ({
+  entry: one(journalEntries, {
+    fields: [entryActivities.entryId],
+    references: [journalEntries.id]
+  })
+}));
+
+export const entryFeelingsRelations = relations(entryFeelings, ({ one }: { one: any }) => ({
+  entry: one(journalEntries, {
+    fields: [entryFeelings.entryId],
+    references: [journalEntries.id]
+  })
+}));
+
+export const entrySymptomsRelations = relations(entrySymptoms, ({ one }: { one: any }) => ({
+  entry: one(journalEntries, {
+    fields: [entrySymptoms.entryId],
+    references: [journalEntries.id]
+  })
+}));
+
+export const substanceUseRelations = relations(substanceUse, ({ one }: { one: any }) => ({
+  entry: one(journalEntries, {
+    fields: [substanceUse.entryId],
+    references: [journalEntries.id]
+  })
+}));

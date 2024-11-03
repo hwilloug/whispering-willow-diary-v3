@@ -22,7 +22,7 @@
 @layer base {
   body {
     @apply text-foreground font-ubuntu;
-    background-image: url('https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&q=80');
+    background-image: url('/background.jpeg');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;

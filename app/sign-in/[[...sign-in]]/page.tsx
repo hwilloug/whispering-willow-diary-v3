@@ -22,10 +22,7 @@ export default function SignInPage() {
               identityPreviewEditButton: 'text-primary hover:text-primary-dark',
             },
           }}
-          routing="path"
-          path="/sign-in"
-          signUpUrl="/sign-up"
-          redirectUrl="/dashboard"
+          forceRedirectUrl="/dashboard"
         />
       </div>
     </div>

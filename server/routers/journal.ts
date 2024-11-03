@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { protectedProcedure, router } from '../trpc';
 import { db } from '@/db';
-import { journalEntries, entryActivities, entryFeelings, entrySymptoms, substanceUse } from '@/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { journalEntries, entryActivities, entryFeelings, entrySymptoms, substanceUse, journalEntriesRelations } from '@/db/schema';
+import { eq, and, desc, lte, gte } from 'drizzle-orm';
 
 const createJournalEntrySchema = z.object({
   date: z.string(),
@@ -12,18 +12,18 @@ const createJournalEntrySchema = z.object({
   sleepHours: z.number().optional(),
   exerciseMinutes: z.number().optional(),
   affirmation: z.string().optional(),
-  activities: z.array(z.string()),
-  feelings: z.array(z.string()),
+  activities: z.array(z.string()).optional(),
+  feelings: z.array(z.string()).optional(),
   symptoms: z.array(z.object({
     symptom: z.string(),
     severity: z.number().min(1).max(10),
     category: z.string()
-  })),
+  })).optional(),
   substances: z.array(z.object({
     substance: z.string(),
     amount: z.string().optional(),
     notes: z.string().optional()
-  }))
+  })).optional()
 });
 
 export const journalRouter = router({
@@ -41,12 +41,12 @@ export const journalRouter = router({
   }),
 
   getByDate: protectedProcedure
-    .input(z.string())
+    .input(z.coerce.date()) // Changed from z.string()
     .query(async ({ ctx, input }) => {
       return await db.query.journalEntries.findFirst({
         where: and(
           eq(journalEntries.userId, ctx.userId),
-          eq(journalEntries.date, input)
+          eq(journalEntries.date, input.toISOString())
         ),
         with: {
           activities: true,
@@ -65,17 +65,17 @@ export const journalRouter = router({
           .insert(journalEntries)
           .values({
             userId: ctx.userId,
-            date: new Date(input.date),
+            date: input.date,
             title: input.title,
             content: input.content,
             mood: input.mood,
             sleepHours: input.sleepHours,
             exerciseMinutes: input.exerciseMinutes,
-            affirmation: input.affirmation
+            affirmation: input.affirmation,
           })
           .returning();
 
-        if (input.activities.length > 0) {
+        if (input.activities && input.activities.length > 0) {
           await tx.insert(entryActivities).values(
             input.activities.map(activity => ({
               entryId: entry.id,
@@ -84,7 +84,7 @@ export const journalRouter = router({
           );
         }
 
-        if (input.feelings.length > 0) {
+        if (input.feelings && input.feelings.length > 0) {
           await tx.insert(entryFeelings).values(
             input.feelings.map(feeling => ({
               entryId: entry.id,
@@ -93,7 +93,7 @@ export const journalRouter = router({
           );
         }
 
-        if (input.symptoms.length > 0) {
+        if (input.symptoms && input.symptoms.length > 0) {
           await tx.insert(entrySymptoms).values(
             input.symptoms.map(({ symptom, severity, category }) => ({
               entryId: entry.id,
@@ -104,7 +104,7 @@ export const journalRouter = router({
           );
         }
 
-        if (input.substances.length > 0) {
+        if (input.substances && input.substances.length > 0) {
           await tx.insert(substanceUse).values(
             input.substances.map(({ substance, amount, notes }) => ({
               entryId: entry.id,
@@ -148,7 +148,7 @@ export const journalRouter = router({
         await tx.delete(entrySymptoms).where(eq(entrySymptoms.entryId, input.id));
         await tx.delete(substanceUse).where(eq(substanceUse.entryId, input.id));
 
-        if (input.data.activities.length > 0) {
+        if (input.data.activities && input.data.activities.length > 0) {
           await tx.insert(entryActivities).values(
             input.data.activities.map(activity => ({
               entryId: entry.id,
@@ -157,7 +157,7 @@ export const journalRouter = router({
           );
         }
 
-        if (input.data.feelings.length > 0) {
+        if (input.data.feelings && input.data.feelings.length > 0) {
           await tx.insert(entryFeelings).values(
             input.data.feelings.map(feeling => ({
               entryId: entry.id,
@@ -166,7 +166,7 @@ export const journalRouter = router({
           );
         }
 
-        if (input.data.symptoms.length > 0) {
+        if (input.data.symptoms && input.data.symptoms.length > 0) {
           await tx.insert(entrySymptoms).values(
             input.data.symptoms.map(({ symptom, severity, category }) => ({
               entryId: entry.id,
@@ -177,7 +177,7 @@ export const journalRouter = router({
           );
         }
 
-        if (input.data.substances.length > 0) {
+        if (input.data.substances && input.data.substances.length > 0) {
           await tx.insert(substanceUse).values(
             input.data.substances.map(({ substance, amount, notes }) => ({
               entryId: entry.id,
@@ -213,8 +213,8 @@ export const journalRouter = router({
       const entries = await db.query.journalEntries.findMany({
         where: and(
           eq(journalEntries.userId, ctx.userId),
-          journalEntries.date >= new Date(input.startDate),
-          journalEntries.date <= new Date(input.endDate)
+          gte(journalEntries.date, input.startDate),
+          lte(journalEntries.date, input.endDate)
         ),
         with: {
           activities: true,
@@ -240,34 +240,41 @@ export const journalRouter = router({
         if (entry.sleepHours) stats.averageSleep += entry.sleepHours;
         if (entry.exerciseMinutes) stats.averageExercise += entry.exerciseMinutes;
 
-        entry.activities?.forEach(({ activity }) => {
-          stats.topActivities.set(
-            activity,
-            (stats.topActivities.get(activity) || 0) + 1
-          );
+        if (Array.isArray(entry.activities)) {
+          entry.activities.forEach((activity: { id: string }) => {
+            stats.topActivities.set(
+              activity.id,
+              (stats.topActivities.get(activity.id) || 0) + 1
+            );
         });
 
-        entry.feelings?.forEach(({ feeling }) => {
-          stats.topFeelings.set(
-            feeling,
-            (stats.topFeelings.get(feeling) || 0) + 1
-          );
-        });
+        if (Array.isArray(entry.feelings)) {
+          entry.feelings.forEach((feeling: { id: string }) => {
+            stats.topFeelings.set(
+              feeling.id,
+              (stats.topFeelings.get(feeling.id) || 0) + 1
+            );
+          });
+        }
 
-        entry.symptoms?.forEach(({ symptom }) => {
-          stats.symptomFrequency.set(
-            symptom,
-            (stats.symptomFrequency.get(symptom) || 0) + 1
-          );
-        });
+        if (Array.isArray(entry.symptoms)) {
+          entry.symptoms.forEach((symptom: {id: string}) => {
+            stats.symptomFrequency.set(
+              symptom.id,
+              (stats.symptomFrequency.get(symptom.id) || 0) + 1
+            );
+          });
+        }
 
-        entry.substances?.forEach(({ substance }) => {
-          stats.substanceUse.set(
-            substance,
-            (stats.substanceUse.get(substance) || 0) + 1
-          );
-        });
-      });
+        if (Array.isArray(entry.substances)) {
+          entry.substances.forEach((substance: {id: string}) => {
+            stats.substanceUse.set(
+              substance.id,
+                (stats.substanceUse.get(substance.id) || 0) + 1
+            );
+          });
+        }
+      };
 
       if (entries.length > 0) {
         stats.averageMood /= entries.length;
@@ -281,6 +288,6 @@ export const journalRouter = router({
         topFeelings: Object.fromEntries(stats.topFeelings),
         symptomFrequency: Object.fromEntries(stats.symptomFrequency),
         substanceUse: Object.fromEntries(stats.substanceUse)
-      };
+      }
     })
-});
+  })})
