@@ -19,16 +19,17 @@ import { SymptomSelector } from '@/components/symptom-selector';
 import { DrugUseSelector } from '@/components/drug-use-selector';
 import { FeelingSelector } from '@/components/feeling-selector';
 import { trpc } from '@/lib/trpc'
+import { AppRouter } from '@/server';
+import { inferRouterOutputs } from '@trpc/server';
 
 interface NewEntryFormProps {
   date: string;
   id?: string;
 }
-
 export function NewEntryForm({ date, id }: NewEntryFormProps) {
   const router = useRouter();
 
-  let existingEntry = null;
+  let existingEntry: inferRouterOutputs<AppRouter>['journal']['getById'] | null = null;
   if (id) {
     const { data } = trpc.journal.getById.useQuery({ id });
     existingEntry = data;
