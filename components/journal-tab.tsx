@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -23,17 +23,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { format } from 'date-fns';
+import { format, parse, subDays, isToday } from 'date-fns';
 import Link from 'next/link';
+import { trpc } from '@/lib/trpc';
+import type { inferRouterOutputs } from '@trpc/server';
+import { AppRouter } from '@/server';
 
-type Entry = {
-  time: string;
-  title: string;
-  content: string;
-  mood: number;
-  activities: string[];
-  symptoms: string[];
-};
+type RouterOutput = inferRouterOutputs<AppRouter>;
+type Entry = RouterOutput['journal']['getAll'][number];
 
 type DayEntry = {
   date: Date;
@@ -42,8 +39,65 @@ type DayEntry = {
 };
 
 export function JournalTab() {
+  const { data: entries } = trpc.journal.getAll.useQuery()
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [dayEntries, setDayEntries] = useState<DayEntry[]>(sampleDayEntries);
+  const [dayEntries, setDayEntries] = useState<DayEntry[]>([]);
+
+  useEffect(() => {
+    // Create array of last 3 days
+    const last3Days = Array.from({length: 3}, (_, i) => {
+      const date = subDays(new Date(), i);
+      // Set time to midnight for consistent comparison
+      return new Date(date.setHours(0, 0, 0, 0));
+    });
+
+    if (entries) {
+      // Group entries by date
+      const entriesByDate = entries.reduce((acc: { [key: string]: Entry[] }, entry) => {
+        const date = parse(entry.date, 'yyyy-MM-dd', new Date());
+        const dateStr = date.toDateString();
+        if (!acc[dateStr]) {
+          acc[dateStr] = [];
+        }
+        acc[dateStr].push(entry);
+        return acc;
+      }, {});
+
+      // Get all unique dates from entries
+      const entryDates = entries.map(entry => {
+        const date = parse(entry.date, 'yyyy-MM-dd', new Date());
+        return new Date(date.setHours(0, 0, 0, 0));
+      });
+
+      // Combine last 3 days with any additional dates that have entries
+      const allDates = [...last3Days, ...entryDates];
+      const uniqueDates = Array.from(new Set(allDates.map(date => date.getTime())))
+        .map(time => new Date(time));
+
+      // Create DayEntry array including all days
+      const dayEntries: DayEntry[] = uniqueDates.map(date => ({
+        date,
+        entries: entriesByDate[date.toDateString()] || [],
+        expanded: isToday(date)
+      }));
+
+      // Sort by date descending
+      dayEntries.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+      setDayEntries(dayEntries);
+    } else {
+      // If no entries yet, still show empty days
+      const emptyDayEntries = last3Days.map(date => ({
+        date,
+        entries: [],
+        expanded: isToday(date)
+      }));
+      
+      emptyDayEntries.sort((a, b) => b.date.getTime() - a.date.getTime());
+      setDayEntries(emptyDayEntries);
+    }
+  }, [entries]);
 
   const toggleDay = (date: Date) => {
     setDayEntries((prev) =>
@@ -56,7 +110,7 @@ export function JournalTab() {
   };
 
   const filteredEntries = dayEntries.filter((day) =>
-    day.entries.some(
+    searchQuery === '' || day.entries.some(
       (entry) =>
         entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         entry.content.toLowerCase().includes(searchQuery.toLowerCase())
@@ -92,7 +146,7 @@ export function JournalTab() {
                         {format(day.date, 'EEEE, MMMM d, yyyy')}
                       </CardTitle>
                       <CardDescription>
-                        {day.entries.length} entries
+                        {day.entries.length} {day.entries.length === 1 ? 'entry' : 'entries'}
                       </CardDescription>
                     </div>
                     {day.expanded ? (
@@ -112,14 +166,14 @@ export function JournalTab() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">{entry.time}</span>
+                          <span className="font-medium">{format(entry.createdAt, 'h:mm a')}</span>
                           <span className="text-sm text-muted-foreground">
                             Mood: {entry.mood}/10
                           </span>
                         </div>
                         <div className="flex gap-2">
                           <Link
-                            href={`/entry/${format(day.date, 'yyyy-MM-dd')}`}
+                            href={`/entry/${format(day.date, 'yyyy-MM-dd')}/${entry.id}`}
                           >
                             <Button variant="ghost" size="icon">
                               <Edit2 className="h-4 w-4" />
@@ -138,7 +192,7 @@ export function JournalTab() {
                             key={i}
                             className="bg-primary/10 text-primary text-sm px-2 py-1 rounded"
                           >
-                            {activity}
+                            {activity.activity}
                           </span>
                         ))}
                         {entry.symptoms.map((symptom, i) => (
@@ -146,13 +200,13 @@ export function JournalTab() {
                             key={i}
                             className="bg-destructive/10 text-destructive text-sm px-2 py-1 rounded"
                           >
-                            {symptom}
+                            {symptom.symptom}
                           </span>
                         ))}
                       </div>
                     </div>
                   ))}
-                  <Link href={`/entry/${format(day.date, 'yyyy-MM-dd')}`}>
+                  <Link href={`/entry/${format(day.date, 'yyyy-MM-dd')}/new`}>
                     <Button
                       variant="outline"
                       className="w-full bg-primary-dark text-white border-none"
@@ -169,67 +223,3 @@ export function JournalTab() {
     </div>
   );
 }
-
-const sampleDayEntries: DayEntry[] = [
-  {
-    date: new Date(),
-    expanded: true,
-    entries: [
-      {
-        time: '9:00 AM',
-        title: 'Morning Reflection',
-        content:
-          'Started the day with meditation and journaling. Feeling centered and ready for the day ahead.',
-        mood: 8,
-        activities: ['Meditation', 'Exercise'],
-        symptoms: [],
-      },
-      {
-        time: '2:30 PM',
-        title: 'Afternoon Check-in',
-        content:
-          'Post-lunch energy dip. Taking short breaks helps maintain focus.',
-        mood: 6,
-        activities: ['Work', 'Reading'],
-        symptoms: ['Fatigue'],
-      },
-    ],
-  },
-  {
-    date: new Date(Date.now() - 86400000),
-    expanded: false,
-    entries: [
-      {
-        time: '10:00 AM',
-        title: 'Therapy Session Notes',
-        content: 'Productive session discussing anxiety management techniques.',
-        mood: 7,
-        activities: ['Therapy'],
-        symptoms: ['Anxiety'],
-      },
-      {
-        time: '8:00 PM',
-        title: 'Evening Reflection',
-        content: 'Completed all daily tasks. Feeling accomplished but tired.',
-        mood: 8,
-        activities: ['Self-care'],
-        symptoms: ['Stress'],
-      },
-    ],
-  },
-  {
-    date: new Date(Date.now() - 172800000),
-    expanded: false,
-    entries: [
-      {
-        time: '11:00 AM',
-        title: 'Weekly Goals Review',
-        content:
-          'Setting intentions for the week. Focus on mindfulness and exercise.',
-        mood: 9,
-        activities: ['Planning', 'Goal Setting'],
-        symptoms: [],
-      },
-    ],
-  },
-];

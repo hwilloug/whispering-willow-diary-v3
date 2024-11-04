@@ -9,52 +9,62 @@ import { useState } from 'react';
 
 const SUGGESTED_SUBSTANCES = [
   'Alcohol',
-  'Cannabis',
+  'Cannabis', 
   'Tobacco',
   'Caffeine',
   'Prescription Medication',
 ];
 
 interface DrugUseSelectorProps {
-  selected: string[];
-  onSelect: (substances: string[]) => void;
+  selected: {
+    substance: string;
+    amount?: string;
+    notes?: string;
+  }[];
+  onSelect: (substances: {
+    substance: string;
+    amount?: string;
+    notes?: string;
+  }[]) => void;
 }
 
 export function DrugUseSelector({ selected, onSelect }: DrugUseSelectorProps) {
   const [newSubstance, setNewSubstance] = useState('');
 
-  const addSubstance = (substance: string) => {
-    if (substance && !selected.includes(substance)) {
-      onSelect([...selected, substance]);
+  const addSubstance = (substanceName: string) => {
+    if (substanceName && !selected.some(s => s.substance === substanceName)) {
+      onSelect([...selected, {
+        substance: substanceName
+      }]);
     }
     setNewSubstance('');
   };
 
-  const removeSubstance = (substance: string) => {
-    onSelect(selected.filter((s) => s !== substance));
+  const removeSubstance = (substanceName: string) => {
+    onSelect(selected.filter((s) => s.substance !== substanceName));
   };
 
   return (
     <div className="space-y-2">
       <Label>Substance Use</Label>
       <div className="flex flex-wrap gap-2 mb-2">
-        {selected.map((substance) => (
+        {selected.map((s) => (
           <Badge
-            key={substance}
+            key={s.substance}
             variant="outline"
             className="cursor-pointer bg-primary-dark hover:primary-light text-white"
           >
-            {substance}
+            {s.substance}
             <X
               className="ml-1 h-3 w-3"
-              onClick={() => removeSubstance(substance)}
+              onClick={() => removeSubstance(s.substance)}
             />
           </Badge>
         ))}
       </div>
       <div className="flex flex-wrap gap-2 mb-2">
         {SUGGESTED_SUBSTANCES.filter(
-          (substance) => !selected.includes(substance)
+          (substance) => !selected.some(s => s.substance === substance)
         ).map((substance) => (
           <Badge
             key={substance}

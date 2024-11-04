@@ -23,22 +23,25 @@ const SUGGESTED_FEELINGS = [
 ];
 
 interface FeelingSelectorProps {
-  selected: string[];
-  onSelect: (feelings: string[]) => void;
+  selected: {
+    id?: string;
+    feeling: string;
+  }[];
+  onSelect: (feelings: { id?: string; feeling: string }[]) => void;
 }
 
 export function FeelingSelector({ selected, onSelect }: FeelingSelectorProps) {
   const [newFeeling, setNewFeeling] = useState('');
 
   const addFeeling = (feeling: string) => {
-    if (feeling && !selected.includes(feeling)) {
-      onSelect([...selected, feeling]);
+    if (feeling && !selected.some((f) => f.feeling === feeling)) {
+      onSelect([...selected, { feeling }]);
     }
     setNewFeeling('');
   };
 
   const removeFeeling = (feeling: string) => {
-    onSelect(selected.filter((f) => f !== feeling));
+    onSelect(selected.filter((f) => f.feeling !== feeling));
   };
 
   return (
@@ -47,21 +50,21 @@ export function FeelingSelector({ selected, onSelect }: FeelingSelectorProps) {
       <div className="flex flex-wrap gap-2 mb-2">
         {selected.map((feeling) => (
           <Badge
-            key={feeling}
+            key={feeling.feeling}
             variant="outline"
             className="cursor-pointer bg-primary-dark hover:primary-light text-white"
           >
-            {feeling}
+            {feeling.feeling}
             <X
               className="ml-1 h-3 w-3"
-              onClick={() => removeFeeling(feeling)}
+              onClick={() => removeFeeling(feeling.feeling)}
             />
           </Badge>
         ))}
       </div>
       <div className="flex flex-wrap gap-2 mb-2">
         {SUGGESTED_FEELINGS.filter(
-          (feeling) => !selected.includes(feeling)
+          (feeling) => !selected.some((f) => f.feeling === feeling)
         ).map((feeling) => (
           <Badge
             key={feeling}

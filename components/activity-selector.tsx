@@ -21,8 +21,11 @@ const SUGGESTED_ACTIVITIES = [
 ];
 
 interface ActivitySelectorProps {
-  selected: string[];
-  onSelect: (activities: string[]) => void;
+  selected: {
+    id?: string;
+    activity: string;
+  }[];
+  onSelect: (activities: { id?: string; activity: string }[]) => void;
 }
 
 export function ActivitySelector({
@@ -32,14 +35,14 @@ export function ActivitySelector({
   const [newActivity, setNewActivity] = useState('');
 
   const addActivity = (activity: string) => {
-    if (activity && !selected.includes(activity)) {
-      onSelect([...selected, activity]);
+    if (activity && !selected.some((a) => a.activity === activity)) {
+      onSelect([...selected, { activity }]);
     }
     setNewActivity('');
   };
 
   const removeActivity = (activity: string) => {
-    onSelect(selected.filter((a) => a !== activity));
+    onSelect(selected.filter((a) => a.activity !== activity));
   };
 
   return (
@@ -48,21 +51,21 @@ export function ActivitySelector({
       <div className="flex flex-wrap gap-2 mb-2">
         {selected.map((activity) => (
           <Badge
-            key={activity}
+            key={activity.activity}
             variant="secondary"
             className="cursor-pointer bg-primary-dark hover:primary-light text-white"
           >
-            {activity}
+            {activity.activity}
             <X
               className="ml-1 h-3 w-3"
-              onClick={() => removeActivity(activity)}
+              onClick={() => removeActivity(activity.activity)}
             />
           </Badge>
         ))}
       </div>
       <div className="flex flex-wrap gap-2 mb-2">
         {SUGGESTED_ACTIVITIES.filter(
-          (activity) => !selected.includes(activity)
+          (activity) => !selected.some((a) => a.activity === activity)
         ).map((activity) => (
           <Badge
             key={activity}

@@ -8,13 +8,7 @@ import { useParams } from 'next/navigation';
 import { HeaderNav } from '@/components/header-nav';
 
 export default function NewEntryPage() {
-  const { date } = useParams();
-  const formattedDate = new Date(date as string).toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const { date, id } = useParams();
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -28,7 +22,7 @@ export default function NewEntryPage() {
             </Button>
           </Link>
         </div>
-        <NewEntryForm date={date as string} />
+        <NewEntryForm date={date as string} id={id as string} />
       </main>
     </div>
   );

@@ -137,7 +137,7 @@ export function Analytics() {
   return (
     <div className="grid gap-4">
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="card-glass">
+        <Card className="card-glass shadow-lg">
           <CardHeader>
             <CardTitle>Average Mood</CardTitle>
             <CardDescription>Weekly average mood score</CardDescription>
@@ -147,7 +147,7 @@ export function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="card-glass">
+        <Card className="card-glass shadow-lg">
           <CardHeader>
             <CardTitle>Sleep Quality</CardTitle>
             <CardDescription>Average hours of sleep</CardDescription>
@@ -158,7 +158,7 @@ export function Analytics() {
         </Card>
       </div>
 
-      <Card className="card-glass">
+      <Card className="card-glass shadow-lg">
         <CardHeader>
           <CardTitle>Mental Health Indicators</CardTitle>
           <CardDescription>Weekly tracking of mental health conditions</CardDescription>
@@ -211,7 +211,7 @@ export function Analytics() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="card-glass">
+        <Card className="card-glass shadow-lg">
           <CardHeader>
             <CardTitle>Mood vs Sleep Correlation</CardTitle>
             <CardDescription>Impact of sleep on mood levels</CardDescription>
@@ -242,7 +242,7 @@ export function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="card-glass">
+        <Card className="card-glass shadow-lg">
           <CardHeader>
             <CardTitle>Activity Distribution</CardTitle>
             <CardDescription>Number of times each activity was performed</CardDescription>
@@ -272,7 +272,7 @@ export function Analytics() {
         </Card>
       </div>
 
-      <Card className="card-glass">
+      <Card className="card-glass shadow-lg">
         <CardHeader>
           <CardTitle>Weekly Mental Health Summary</CardTitle>
           <CardDescription>Combined view of all mental health indicators</CardDescription>

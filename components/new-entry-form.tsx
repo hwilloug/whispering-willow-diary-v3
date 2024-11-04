@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -18,28 +18,132 @@ import { ActivitySelector } from '@/components/activity-selector';
 import { SymptomSelector } from '@/components/symptom-selector';
 import { DrugUseSelector } from '@/components/drug-use-selector';
 import { FeelingSelector } from '@/components/feeling-selector';
+import { trpc } from '@/lib/trpc'
 
 interface NewEntryFormProps {
   date: string;
+  id?: string;
 }
 
-export function NewEntryForm({ date }: NewEntryFormProps) {
+export function NewEntryForm({ date, id }: NewEntryFormProps) {
   const router = useRouter();
+  
+  const { data: settings } = trpc.settings.get.useQuery();
+
+  let existingEntry = null;
+  if (id) {
+    const { data } = trpc.journal.getById.useQuery({ id });
+    existingEntry = data;
+  }
+
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [mood, setMood] = useState([5]);
-  const [activities, setActivities] = useState<string[]>([]);
-  const [symptoms, setSymptoms] = useState<string[]>([]);
-  const [sleepHours, setSleepHours] = useState([7]);
+  const [mood, setMood] = useState<number>(0);
+  const [activities, setActivities] = useState<{
+    id?: string;
+    activity: string;
+  }[]>([]);
+  const [symptoms, setSymptoms] = useState<{
+    id?: string;
+    symptom: string;
+    severity?: number;
+    category?: string;
+  }[]>([]);
+  const [sleepHours, setSleepHours] = useState<number>(0);
   const [affirmation, setAffirmation] = useState('');
-  const [feelings, setFeelings] = useState<string[]>([]);
-  const [drugUse, setDrugUse] = useState<string[]>([]);
-  const [exerciseMinutes, setExerciseMinutes] = useState([30]);
+  const [feelings, setFeelings] = useState<{
+    id?: string;
+    feeling: string;
+  }[]>([]);
+  const [drugUse, setDrugUse] = useState<{
+    id?: string;
+    substance: string;
+    amount?: string;
+    notes?: string;
+  }[]>([]);
+  const [exerciseMinutes, setExerciseMinutes] = useState<number>(0);
+
+  // Initialize with settings data
+  useEffect(() => {
+    if (settings) {
+      setActivities(settings.suggestedActivities?.map(activity => ({
+        activity,
+        id: undefined
+      })) || []);
+      setSymptoms(settings.suggestedSymptoms?.map(symptom => ({
+        symptom,
+        severity: 5,
+        category: 'Custom'
+      })) || []);
+      setFeelings(settings.suggestedFeelings?.map(feeling => ({
+        feeling,
+        id: undefined
+      })) || []);
+      setDrugUse(settings.suggestedSubstances?.map(substance => ({
+        substance,
+        amount: '',
+        notes: ''
+      })) || []);
+    }
+  }, [settings]);
+
+  // Initialize with existing entry if available
+  useEffect(() => {
+    if (existingEntry) {
+      setTitle(existingEntry.title);
+      setContent(existingEntry.content);
+      setMood(existingEntry.mood);
+      setActivities(existingEntry.activities ?? []);
+      setSymptoms(existingEntry.symptoms?.map(symptom => ({
+        id: symptom.id,
+        symptom: symptom.symptom,
+        severity: symptom.severity ?? undefined,
+        category: symptom.category
+      })) ?? []);
+      setSleepHours(existingEntry.sleepHours ?? 0);
+      setAffirmation(existingEntry.affirmation ?? '');
+      setFeelings(existingEntry.feelings ?? []);
+      setDrugUse(existingEntry.substances?.map(substance => ({
+        substance: substance.substance,
+        amount: substance.amount || undefined,
+        notes: substance.notes || undefined
+      })) || []);
+      setExerciseMinutes(existingEntry.exerciseMinutes ? existingEntry.exerciseMinutes : 0);
+    }
+  }, [existingEntry]);
+
+  const createEntry = trpc.journal.create.useMutation({
+    onSuccess: () => {
+      router.push('/dashboard?tab=journal')
+    }
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement form submission
-    router.push('/dashboard');
+    
+    if (!existingEntry) {
+      await createEntry.mutateAsync({
+        date,
+        title,
+        content,
+        mood: mood,
+        sleepHours: sleepHours,
+      exerciseMinutes: exerciseMinutes,
+      affirmation,
+      activities: activities.map(a => a.activity),
+      feelings: feelings.map(f => f.feeling),
+      symptoms: symptoms.map(s => ({
+        symptom: s.symptom,
+        severity: s.severity || 1,
+        category: s.category || 'other'
+      })),
+      substances: drugUse.map(d => ({
+        substance: d.substance,
+        amount: d.amount || '',
+        notes: d.notes || ''
+        }))
+      });
+    }
   };
 
   return (
@@ -68,8 +172,8 @@ export function NewEntryForm({ date }: NewEntryFormProps) {
             <Label>Mood</Label>
             <div className="flex items-center space-x-4">
               <Slider
-                value={mood}
-                onValueChange={setMood}
+                value={[mood]}
+                onValueChange={([value]) => setMood(value)}
                 min={1}
                 max={10}
                 step={1}
@@ -83,8 +187,8 @@ export function NewEntryForm({ date }: NewEntryFormProps) {
             <Label>Sleep Duration</Label>
             <div className="flex items-center space-x-4">
               <Slider
-                value={sleepHours}
-                onValueChange={setSleepHours}
+                value={[sleepHours]}
+                onValueChange={([value]) => setSleepHours(value)}
                 min={0}
                 max={12}
                 step={0.5}
@@ -100,8 +204,8 @@ export function NewEntryForm({ date }: NewEntryFormProps) {
             <Label>Exercise Duration</Label>
             <div className="flex items-center space-x-4">
               <Slider
-                value={exerciseMinutes}
-                onValueChange={setExerciseMinutes}
+                value={[exerciseMinutes]}
+                onValueChange={([value]) => setExerciseMinutes(value)}
                 min={0}
                 max={180}
                 step={5}

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { protectedProcedure, router } from '../trpc';
 import { db } from '@/db';
-import { journalEntries, entryActivities, entryFeelings, entrySymptoms, substanceUse, journalEntriesRelations } from '@/db/schema';
+import { journalEntries, entryActivities, entryFeelings, entrySymptoms, substanceUse, journalEntriesRelations } from '@/db/v3.schema';
 import { eq, and, desc, lte, gte } from 'drizzle-orm';
 
 const createJournalEntrySchema = z.object({
@@ -39,14 +39,30 @@ export const journalRouter = router({
       }
     });
   }),
-
-  getByDate: protectedProcedure
-    .input(z.coerce.date()) // Changed from z.string()
+  getById: protectedProcedure
+    .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       return await db.query.journalEntries.findFirst({
         where: and(
           eq(journalEntries.userId, ctx.userId),
-          eq(journalEntries.date, input.toISOString())
+          eq(journalEntries.id, input.id)
+        ),
+        with: {
+          activities: true,
+          feelings: true,
+          symptoms: true,
+          substances: true
+        }
+      });
+    }),
+
+  getByDate: protectedProcedure
+    .input(z.object({ date: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return await db.query.journalEntries.findMany({
+        where: and(
+          eq(journalEntries.userId, ctx.userId),
+          eq(journalEntries.date, input.date)
         ),
         with: {
           activities: true,

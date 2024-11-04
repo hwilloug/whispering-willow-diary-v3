@@ -6,7 +6,7 @@ import Image from 'next/image';
 
 export function HeaderNav() {
   return (
-    <header className="bg-primary-dark">
+    <header className="bg-primary-dark shadow-lg">
       <div className="flex h-16 items-center px-4">
         <div className="flex items-center gap-2">
           <Image src="/whispering_willow_logo.png" alt="Whispering Willow Diary" width={48} height={48} />

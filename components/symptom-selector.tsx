@@ -19,45 +19,59 @@ const SUGGESTED_SYMPTOMS = [
 ];
 
 interface SymptomSelectorProps {
-  selected: string[];
-  onSelect: (symptoms: string[]) => void;
+  selected: {
+    symptom: string;
+    severity?: number;
+    category?: string;
+    id?: string;
+  }[];
+  onSelect: (symptoms: {
+    symptom: string;
+    severity?: number;
+    category?: string;
+    id?: string;
+  }[]) => void;
 }
 
 export function SymptomSelector({ selected, onSelect }: SymptomSelectorProps) {
   const [newSymptom, setNewSymptom] = useState('');
 
-  const addSymptom = (symptom: string) => {
-    if (symptom && !selected.includes(symptom)) {
-      onSelect([...selected, symptom]);
+  const addSymptom = (symptomName: string) => {
+    if (symptomName && !selected.some(s => s.symptom === symptomName)) {
+      onSelect([...selected, {
+        symptom: symptomName,
+        severity: 5, // Default severity
+        category: 'Custom' // Default category
+      }]);
     }
     setNewSymptom('');
   };
 
-  const removeSymptom = (symptom: string) => {
-    onSelect(selected.filter((s) => s !== symptom));
+  const removeSymptom = (symptomName: string) => {
+    onSelect(selected.filter((s) => s.symptom !== symptomName));
   };
 
   return (
     <div className="space-y-2">
       <Label>Symptoms</Label>
       <div className="flex flex-wrap gap-2 mb-2">
-        {selected.map((symptom) => (
+        {selected.map((s) => (
           <Badge
-            key={symptom}
+            key={s.symptom}
             variant="destructive"
             className="cursor-pointer bg-primary-dark hover:primary-light text-white"
           >
-            {symptom}
+            {s.symptom}
             <X
               className="ml-1 h-3 w-3"
-              onClick={() => removeSymptom(symptom)}
+              onClick={() => removeSymptom(s.symptom)}
             />
           </Badge>
         ))}
       </div>
       <div className="flex flex-wrap gap-2 mb-2">
         {SUGGESTED_SYMPTOMS.filter(
-          (symptom) => !selected.includes(symptom)
+          (symptom) => !selected.some(s => s.symptom === symptom)
         ).map((symptom) => (
           <Badge
             key={symptom}

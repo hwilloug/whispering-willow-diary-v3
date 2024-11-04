@@ -4,8 +4,11 @@ import { NewEntryForm } from '@/components/new-entry-form';
 import { Button } from '@/components/ui/button';
 import { BookOpen, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 export default function NewEntryPage() {
+  const { date } = useParams()
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b">
@@ -25,7 +28,7 @@ export default function NewEntryPage() {
         </div>
       </header>
       <main className="flex-1 container max-w-3xl py-8">
-        <NewEntryForm />
+        <NewEntryForm date={date as string} />
       </main>
     </div>
   );
