@@ -130,7 +130,7 @@ export default function DashboardPage() {
             <Overview />
           </TabsContent>
           <TabsContent value="analytics">
-            <Analytics />
+            <Analytics dateRange={dateRange} />
           </TabsContent>
           <TabsContent value="journal">
             <JournalTab selectedDates={dateRange} />

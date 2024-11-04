@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { protectedProcedure, router } from '../trpc';
 import { db } from '@/db';
 import { journalEntries, entryActivities, entryFeelings, entrySymptoms, substanceUse } from '@/db/v3.schema';
-import { eq, and, desc, lte, gte } from 'drizzle-orm';
+import { eq, and, desc, lte, gte, or } from 'drizzle-orm';
+import { format, parse } from 'date-fns';
 
 const createJournalEntrySchema = z.object({
   date: z.string(),
@@ -226,11 +227,19 @@ export const journalRouter = router({
       endDate: z.string()
     }))
     .query(async ({ ctx, input }) => {
+      const dates = [];
+      let currentDate = parse(input.startDate, 'yyyy-MM-dd', new Date());
+      const endDate = parse(input.endDate, 'yyyy-MM-dd', new Date());
+      
+      while (currentDate <= endDate) {
+        dates.push(format(currentDate, 'yyyy-MM-dd'));
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
       const entries = await db.query.journalEntries.findMany({
         where: and(
           eq(journalEntries.userId, ctx.userId),
-          gte(journalEntries.date, input.startDate),
-          lte(journalEntries.date, input.endDate)
+          or(...dates.map(date => eq(journalEntries.date, date)))
         ),
         with: {
           activities: true,
@@ -256,41 +265,34 @@ export const journalRouter = router({
         if (entry.sleepHours) stats.averageSleep += entry.sleepHours;
         if (entry.exerciseMinutes) stats.averageExercise += entry.exerciseMinutes;
 
-        if (Array.isArray(entry.activities)) {
-          entry.activities.forEach((activity: { id: string }) => {
-            stats.topActivities.set(
-              activity.id,
-              (stats.topActivities.get(activity.id) || 0) + 1
-            );
+        entry.activities?.forEach(activity => {
+          stats.topActivities.set(
+            activity.activity,
+            (stats.topActivities.get(activity.activity) || 0) + 1
+          );
         });
 
-        if (Array.isArray(entry.feelings)) {
-          entry.feelings.forEach((feeling: { id: string }) => {
-            stats.topFeelings.set(
-              feeling.id,
-              (stats.topFeelings.get(feeling.id) || 0) + 1
-            );
-          });
-        }
+        entry.feelings?.forEach(feeling => {
+          stats.topFeelings.set(
+            feeling.feeling,
+            (stats.topFeelings.get(feeling.feeling) || 0) + 1
+          );
+        });
 
-        if (Array.isArray(entry.symptoms)) {
-          entry.symptoms.forEach((symptom: {id: string}) => {
-            stats.symptomFrequency.set(
-              symptom.id,
-              (stats.symptomFrequency.get(symptom.id) || 0) + 1
-            );
-          });
-        }
+        entry.symptoms?.forEach(symptom => {
+          stats.symptomFrequency.set(
+            symptom.symptom,
+            (stats.symptomFrequency.get(symptom.symptom) || 0) + 1
+          );
+        });
 
-        if (Array.isArray(entry.substances)) {
-          entry.substances.forEach((substance: {id: string}) => {
-            stats.substanceUse.set(
-              substance.id,
-                (stats.substanceUse.get(substance.id) || 0) + 1
-            );
-          });
-        }
-      };
+        entry.substances?.forEach(substance => {
+          stats.substanceUse.set(
+            substance.substance,
+            (stats.substanceUse.get(substance.substance) || 0) + 1
+          );
+        });
+      });
 
       if (entries.length > 0) {
         stats.averageMood /= entries.length;
@@ -304,6 +306,6 @@ export const journalRouter = router({
         topFeelings: Object.fromEntries(stats.topFeelings),
         symptomFrequency: Object.fromEntries(stats.symptomFrequency),
         substanceUse: Object.fromEntries(stats.substanceUse)
-      }
+      };
     })
-  })})
+});

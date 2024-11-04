@@ -21,88 +21,10 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-
-const weekData = [
-  { 
-    date: 'Mon', 
-    sleep: 7, 
-    mood: 8, 
-    depression: 2,
-    anxiety: 3, 
-    mania: 1,
-    ocd: 2,
-    adhd: 4
-  },
-  { 
-    date: 'Tue', 
-    sleep: 6, 
-    mood: 7, 
-    depression: 3,
-    anxiety: 4, 
-    mania: 1,
-    ocd: 3,
-    adhd: 4
-  },
-  { 
-    date: 'Wed', 
-    sleep: 8, 
-    mood: 9, 
-    depression: 1,
-    anxiety: 2, 
-    mania: 2,
-    ocd: 1,
-    adhd: 3
-  },
-  { 
-    date: 'Thu', 
-    sleep: 7, 
-    mood: 6, 
-    depression: 4,
-    anxiety: 5, 
-    mania: 1,
-    ocd: 2,
-    adhd: 5
-  },
-  { 
-    date: 'Fri', 
-    sleep: 8, 
-    mood: 8, 
-    depression: 2,
-    anxiety: 3, 
-    mania: 3,
-    ocd: 2,
-    adhd: 4
-  },
-  { 
-    date: 'Sat', 
-    sleep: 6, 
-    mood: 7, 
-    depression: 3,
-    anxiety: 4, 
-    mania: 2,
-    ocd: 3,
-    adhd: 3
-  },
-  { 
-    date: 'Sun', 
-    sleep: 9, 
-    mood: 9, 
-    depression: 1,
-    anxiety: 1, 
-    mania: 1,
-    ocd: 1,
-    adhd: 2
-  },
-];
-
-const activityData = [
-  { name: 'Exercise', count: 12 },
-  { name: 'Meditation', count: 8 },
-  { name: 'Reading', count: 15 },
-  { name: 'Socializing', count: 6 },
-  { name: 'Therapy', count: 2 },
-  { name: 'Work', count: 20 },
-];
+import { trpc } from '@/lib/trpc';
+import { format, parse, eachDayOfInterval } from 'date-fns';
+import { useMemo } from 'react';
+import { DateRange } from 'react-day-picker';
 
 const COLORS = ['#436228', '#673AB7', '#214C14', '#9575CD', '#E0F0BB', '#4A148C'];
 
@@ -129,10 +51,50 @@ const chartConfig = {
   },
 };
 
-export function Analytics() {
-  const averageMood = (weekData.reduce((acc, day) => acc + day.mood, 0) / weekData.length).toFixed(1);
-  const averageSleep = (weekData.reduce((acc, day) => acc + day.sleep, 0) / weekData.length).toFixed(1);
-  const totalActivities = activityData.reduce((acc, activity) => acc + activity.count, 0);
+interface AnalyticsProps {
+  dateRange: DateRange;
+}
+
+export function Analytics({ dateRange }: AnalyticsProps) {
+  // Get dates from date range
+  const dates = useMemo(() => {
+    if (!dateRange.from || !dateRange.to) return [];
+    return eachDayOfInterval({ 
+      start: dateRange.from,
+      end: dateRange.to
+    }).map(date => format(date, 'yyyy-MM-dd'));
+  }, [dateRange]);
+
+  // Fetch data for each date
+  const queries = dates.map(date => 
+    trpc.journal.getByDate.useQuery({ date })
+  );
+
+  // Get stats for date range
+  const { data: stats } = trpc.journal.getStats.useQuery({
+    startDate: dates[0],
+    endDate: dates[dates.length - 1]
+  });
+
+  // Transform data for charts
+  const weekData = useMemo(() => {
+    return dates.map((date, i) => {
+      const entry = queries[i].data?.[0];
+      return {
+        date: format(parse(date, 'yyyy-MM-dd', new Date()), 'EEE'),
+        sleep: entry?.sleepHours || 0,
+        mood: entry?.mood || 0,
+        depression: entry?.symptoms?.find(s => s.category === 'Depression')?.severity || 0,
+        anxiety: entry?.symptoms?.find(s => s.category === 'Anxiety')?.severity || 0,
+        mania: entry?.symptoms?.find(s => s.category === 'Mania')?.severity || 0,
+        ocd: entry?.symptoms?.find(s => s.category === 'OCD')?.severity || 0,
+        adhd: entry?.symptoms?.find(s => s.category === 'ADHD')?.severity || 0
+      };
+    });
+  }, [dates, queries]);
+
+  const averageMood = stats?.averageMood.toFixed(1) || '-';
+  const averageSleep = stats?.averageSleep.toFixed(1) || '-';
 
   return (
     <div className="grid gap-4">
@@ -251,7 +213,7 @@ export function Analytics() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={activityData}
+                  data={Object.entries(stats?.topActivities || {})}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -260,7 +222,7 @@ export function Analytics() {
                   fill="#8884d8"
                   dataKey="count"
                 >
-                  {activityData.map((entry, index) => (
+                  {Object.entries(stats?.topActivities || {}).map(([name, count], index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
