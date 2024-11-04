@@ -6,21 +6,7 @@ import { X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
-
-const SUGGESTED_FEELINGS = [
-  'Happy',
-  'Sad',
-  'Anxious',
-  'Excited',
-  'Frustrated',
-  'Grateful',
-  'Peaceful',
-  'Overwhelmed',
-  'Motivated',
-  'Tired',
-  'Energetic',
-  'Content',
-];
+import { trpc } from '@/lib/trpc';
 
 interface FeelingSelectorProps {
   selected: {
@@ -32,6 +18,7 @@ interface FeelingSelectorProps {
 
 export function FeelingSelector({ selected, onSelect }: FeelingSelectorProps) {
   const [newFeeling, setNewFeeling] = useState('');
+  const { data: settings } = trpc.settings.get.useQuery();
 
   const addFeeling = (feeling: string) => {
     if (feeling && !selected.some((f) => f.feeling === feeling)) {
@@ -63,7 +50,7 @@ export function FeelingSelector({ selected, onSelect }: FeelingSelectorProps) {
         ))}
       </div>
       <div className="flex flex-wrap gap-2 mb-2">
-        {SUGGESTED_FEELINGS.filter(
+        {(settings?.suggestedFeelings || []).filter(
           (feeling) => !selected.some((f) => f.feeling === feeling)
         ).map((feeling) => (
           <Badge

@@ -6,17 +6,7 @@ import { X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
-
-const SUGGESTED_SYMPTOMS = [
-  'Anxiety',
-  'Depression',
-  'Stress',
-  'Fatigue',
-  'Insomnia',
-  'Pain',
-  'Headache',
-  'Nausea',
-];
+import { trpc } from '@/lib/trpc';
 
 interface SymptomSelectorProps {
   selected: {
@@ -34,14 +24,16 @@ interface SymptomSelectorProps {
 }
 
 export function SymptomSelector({ selected, onSelect }: SymptomSelectorProps) {
+  const { data: settings } = trpc.settings.get.useQuery();
   const [newSymptom, setNewSymptom] = useState('');
+  const [newSymptomCategory, setNewSymptomCategory] = useState('');
 
   const addSymptom = (symptomName: string) => {
     if (symptomName && !selected.some(s => s.symptom === symptomName)) {
       onSelect([...selected, {
         symptom: symptomName,
         severity: 5, // Default severity
-        category: 'Custom' // Default category
+        category: newSymptomCategory || 'Other' // Default category
       }]);
     }
     setNewSymptom('');
@@ -50,6 +42,15 @@ export function SymptomSelector({ selected, onSelect }: SymptomSelectorProps) {
   const removeSymptom = (symptomName: string) => {
     onSelect(selected.filter((s) => s.symptom !== symptomName));
   };
+
+  // Group symptoms by category
+  const groupedSymptoms = (settings?.suggestedSymptoms || []).reduce((acc: Record<string, Array<{symptom: string, category: string}>>, curr) => {
+    if (!acc[curr.category]) {
+      acc[curr.category] = [];
+    }
+    acc[curr.category].push(curr);
+    return acc;
+  }, {});
 
   return (
     <div className="space-y-2">
@@ -69,18 +70,25 @@ export function SymptomSelector({ selected, onSelect }: SymptomSelectorProps) {
           </Badge>
         ))}
       </div>
-      <div className="flex flex-wrap gap-2 mb-2">
-        {SUGGESTED_SYMPTOMS.filter(
-          (symptom) => !selected.some(s => s.symptom === symptom)
-        ).map((symptom) => (
-          <Badge
-            key={symptom}
-            variant="secondary"
-            className="cursor-pointer bg-primary hover:bg-primary-dark text-white"
-            onClick={() => addSymptom(symptom)}
-          >
-            {symptom}
-          </Badge>
+      <div className="space-y-4">
+        {Object.entries(groupedSymptoms).map(([category, symptoms]) => (
+          <div key={category} className="space-y-2">
+            <Label className="text-sm text-muted-foreground">{category}</Label>
+            <div className="flex flex-wrap gap-2">
+              {symptoms.map((symptom) => (
+                !selected.some(s => s.symptom === symptom.symptom) && (
+                  <Badge
+                    key={symptom.symptom}
+                    variant="secondary"
+                    className="cursor-pointer bg-primary hover:bg-primary-dark text-white"
+                    onClick={() => addSymptom(symptom.symptom)}
+                  >
+                    {symptom.symptom}
+                  </Badge>
+                )
+              ))}
+            </div>
+          </div>
         ))}
       </div>
       <div className="flex gap-2">
@@ -96,10 +104,22 @@ export function SymptomSelector({ selected, onSelect }: SymptomSelectorProps) {
             }
           }}
         />
+        <select
+          className="bg-primary-light rounded-md border border-input px-3 py-2"
+          value={newSymptomCategory}
+          onChange={(e) => setNewSymptomCategory(e.target.value)}
+        >
+          <option value="">Select category</option>
+          <option value="mania">Mania</option>
+          <option value="depression">Depression</option>
+          <option value="anxiety">Anxiety</option>
+          <option value="adhd">ADHD</option>
+          <option value="ocd">OCD</option>
+        </select>
         <Button
           type="button"
           variant="secondary"
-          onClick={() => addSymptom(newSymptom)}
+          onClick={() => addSymptom(newSymptom, )}
           className="bg-primary-dark text-white"
         >
           Add

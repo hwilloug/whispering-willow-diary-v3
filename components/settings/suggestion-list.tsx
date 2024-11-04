@@ -7,13 +7,17 @@ import { Button } from '@/components/ui/button';
 import { X, Plus } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface SuggestionListProps {
   title: string;
   description: string;
   items: string[];
   onUpdate: (items: string[]) => void;
-  allowHeaders?: boolean;
+  categories?: string[];
+  selectedCategory?: string;
+  onCategoryChange?: (category: string) => void;
+  onAdd?: (item: {symptom: string, category: string}) => void;
 }
 
 export function SuggestionList({ 
@@ -21,13 +25,24 @@ export function SuggestionList({
   description, 
   items, 
   onUpdate,
-  allowHeaders = false 
+  categories,
+  selectedCategory,
+  onCategoryChange,
+  onAdd
 }: SuggestionListProps) {
   const [newItem, setNewItem] = useState('');
 
   const addItem = () => {
     if (newItem.trim() && !items.includes(newItem.trim())) {
-      onUpdate([...items, newItem.trim()]);
+      const itemToAdd = {
+        symptom: newItem.trim(),
+        category: selectedCategory || 'Other'
+      };
+      if (onAdd) {
+        onAdd(itemToAdd);
+      } else {
+        onUpdate([...items, itemToAdd.symptom]);
+      }
       setNewItem('');
     }
   };
@@ -36,8 +51,8 @@ export function SuggestionList({
     onUpdate(items.filter(i => i !== item));
   };
 
-  const isHeader = (item: string) => {
-    return item.startsWith('---') && item.endsWith('---');
+  const isHeaderItem = (item: string) => {
+    return item.startsWith('#')
   };
 
   return (
@@ -49,9 +64,9 @@ export function SuggestionList({
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
           {items.map((item) => (
-            isHeader(item) ? (
+            isHeaderItem(item) ? (
               <div key={item} className="w-full text-lg font-semibold mt-4 mb-2 text-primary-dark">
-                {item.replace(/---/g, '').trim()}
+                {item.replace('#', '').trim()}
               </div>
             ) : (
               <Badge
@@ -68,26 +83,42 @@ export function SuggestionList({
             )
           ))}
         </div>
-        <div className="flex gap-2">
-          <Input
-            placeholder="Add new item"
-            value={newItem}
-            onChange={(e) => setNewItem(e.target.value)}
-            className="bg-primary-light"
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addItem();
-              }
-            }}
-          />
-          <Button
-            onClick={addItem}
-            className="bg-primary hover:bg-primary-dark text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add
-          </Button>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Add new item"
+              value={newItem}
+              onChange={(e) => setNewItem(e.target.value)}
+              className="bg-primary-light"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addItem();
+                }
+              }}
+            />
+            {categories && (
+              <Select value={selectedCategory} onValueChange={onCategoryChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button
+              onClick={addItem}
+              className="bg-primary hover:bg-primary-dark text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

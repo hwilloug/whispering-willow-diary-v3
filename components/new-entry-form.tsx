@@ -27,8 +27,6 @@ interface NewEntryFormProps {
 
 export function NewEntryForm({ date, id }: NewEntryFormProps) {
   const router = useRouter();
-  
-  const { data: settings } = trpc.settings.get.useQuery();
 
   let existingEntry = null;
   if (id) {
@@ -37,8 +35,8 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
   }
 
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [mood, setMood] = useState<number>(0);
+  const [content, setContent] = useState<string | undefined>(undefined);
+  const [mood, setMood] = useState<number | undefined>(undefined);
   const [activities, setActivities] = useState<{
     id?: string;
     activity: string;
@@ -49,8 +47,8 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
     severity?: number;
     category?: string;
   }[]>([]);
-  const [sleepHours, setSleepHours] = useState<number>(0);
-  const [affirmation, setAffirmation] = useState('');
+  const [sleepHours, setSleepHours] = useState<number | undefined>(undefined);
+  const [affirmation, setAffirmation] = useState<string | undefined>(undefined);
   const [feelings, setFeelings] = useState<{
     id?: string;
     feeling: string;
@@ -61,38 +59,14 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
     amount?: string;
     notes?: string;
   }[]>([]);
-  const [exerciseMinutes, setExerciseMinutes] = useState<number>(0);
-
-  // Initialize with settings data
-  useEffect(() => {
-    if (settings) {
-      setActivities(settings.suggestedActivities?.map(activity => ({
-        activity,
-        id: undefined
-      })) || []);
-      setSymptoms(settings.suggestedSymptoms?.map(symptom => ({
-        symptom,
-        severity: 5,
-        category: 'Custom'
-      })) || []);
-      setFeelings(settings.suggestedFeelings?.map(feeling => ({
-        feeling,
-        id: undefined
-      })) || []);
-      setDrugUse(settings.suggestedSubstances?.map(substance => ({
-        substance,
-        amount: '',
-        notes: ''
-      })) || []);
-    }
-  }, [settings]);
+  const [exerciseMinutes, setExerciseMinutes] = useState<number | undefined>(undefined);
 
   // Initialize with existing entry if available
   useEffect(() => {
     if (existingEntry) {
       setTitle(existingEntry.title);
-      setContent(existingEntry.content);
-      setMood(existingEntry.mood);
+      setContent(existingEntry.content ?? undefined);
+      setMood(existingEntry.mood ?? undefined);
       setActivities(existingEntry.activities ?? []);
       setSymptoms(existingEntry.symptoms?.map(symptom => ({
         id: symptom.id,
@@ -104,15 +78,22 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
       setAffirmation(existingEntry.affirmation ?? '');
       setFeelings(existingEntry.feelings ?? []);
       setDrugUse(existingEntry.substances?.map(substance => ({
+        id: substance.id,
         substance: substance.substance,
-        amount: substance.amount || undefined,
+        amount: substance.amount?.toString(),
         notes: substance.notes || undefined
       })) || []);
-      setExerciseMinutes(existingEntry.exerciseMinutes ? existingEntry.exerciseMinutes : 0);
+      setExerciseMinutes(existingEntry.exerciseMinutes ?? 0);
     }
   }, [existingEntry]);
 
   const createEntry = trpc.journal.create.useMutation({
+    onSuccess: () => {
+      router.push('/dashboard?tab=journal')
+    }
+  });
+
+  const updateEntry = trpc.journal.update.useMutation({
     onSuccess: () => {
       router.push('/dashboard?tab=journal')
     }
@@ -128,20 +109,45 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
         content,
         mood: mood,
         sleepHours: sleepHours,
-      exerciseMinutes: exerciseMinutes,
-      affirmation,
-      activities: activities.map(a => a.activity),
-      feelings: feelings.map(f => f.feeling),
-      symptoms: symptoms.map(s => ({
-        symptom: s.symptom,
-        severity: s.severity || 1,
-        category: s.category || 'other'
-      })),
-      substances: drugUse.map(d => ({
-        substance: d.substance,
-        amount: d.amount || '',
-        notes: d.notes || ''
+        exerciseMinutes: exerciseMinutes,
+        affirmation,
+        activities: activities.map(a => a.activity),
+        feelings: feelings.map(f => f.feeling),
+        symptoms: symptoms.map(s => ({
+          symptom: s.symptom,
+          severity: s.severity || 1,
+          category: s.category || 'Other'
+        })),
+        substances: drugUse.map(d => ({
+          substance: d.substance,
+          amount: d.amount || '',
+          notes: d.notes || ''
         }))
+      });
+    } else if (id) {
+      await updateEntry.mutateAsync({
+        id,
+        data: {
+          date,
+          title,
+          content,
+          mood,
+          sleepHours,
+          exerciseMinutes,
+          affirmation,
+          activities: activities.map(a => a.activity),
+          feelings: feelings.map(f => f.feeling),
+          symptoms: symptoms.map(s => ({
+            symptom: s.symptom,
+            severity: s.severity || 1,
+            category: s.category || 'Other'
+          })),
+          substances: drugUse.map(d => ({
+            substance: d.substance,
+            amount: d.amount || '',
+            notes: d.notes || ''
+          }))
+        }
       });
     }
   };
@@ -150,7 +156,7 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
     <form onSubmit={handleSubmit}>
       <Card className="card-glass">
         <CardHeader>
-          <CardTitle>New Journal Entry</CardTitle>
+          <CardTitle>{existingEntry ? 'Edit' : 'New'} Journal Entry</CardTitle>
           <CardDescription>
             Record your thoughts, feelings, and experiences
           </CardDescription>
@@ -165,6 +171,7 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
               onChange={(e) => setTitle(e.target.value)}
               required
               className="bg-primary-light"
+              autoComplete="off"
             />
           </div>
 
@@ -172,7 +179,7 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
             <Label>Mood</Label>
             <div className="flex items-center space-x-4">
               <Slider
-                value={[mood]}
+                value={mood ? [mood] : undefined}
                 onValueChange={([value]) => setMood(value)}
                 min={1}
                 max={10}
@@ -187,7 +194,7 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
             <Label>Sleep Duration</Label>
             <div className="flex items-center space-x-4">
               <Slider
-                value={[sleepHours]}
+                value={sleepHours ? [sleepHours] : undefined}
                 onValueChange={([value]) => setSleepHours(value)}
                 min={0}
                 max={12}
@@ -204,7 +211,7 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
             <Label>Exercise Duration</Label>
             <div className="flex items-center space-x-4">
               <Slider
-                value={[exerciseMinutes]}
+                value={exerciseMinutes ? [exerciseMinutes] : undefined}
                 onValueChange={([value]) => setExerciseMinutes(value)}
                 min={0}
                 max={180}
@@ -236,17 +243,28 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[200px]"
-              required
             />
           </div>
 
-          <FeelingSelector selected={feelings} onSelect={setFeelings} />
+          <FeelingSelector 
+            selected={feelings} 
+            onSelect={setFeelings}
+          />
 
-          <ActivitySelector selected={activities} onSelect={setActivities} />
+          <ActivitySelector 
+            selected={activities} 
+            onSelect={setActivities}
+          />
 
-          <SymptomSelector selected={symptoms} onSelect={setSymptoms} />
+          <SymptomSelector 
+            selected={symptoms} 
+            onSelect={setSymptoms}
+          />
 
-          <DrugUseSelector selected={drugUse} onSelect={setDrugUse} />
+          <DrugUseSelector 
+            selected={drugUse} 
+            onSelect={setDrugUse}
+          />
 
           <div className="flex justify-end space-x-4">
             <Button

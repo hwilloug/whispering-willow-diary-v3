@@ -11,9 +11,12 @@ import { JournalTab } from '@/components/journal-tab';
 import { DailyAffirmation } from '@/components/daily-affirmation';
 import { Brain, CalendarDays, Dumbbell, Moon, Plus, Pill } from 'lucide-react';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { HeaderNav } from '@/components/header-nav';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { DateRange } from 'react-day-picker';
+import { trpc } from '@/lib/trpc';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -24,6 +27,28 @@ export default function DashboardPage() {
     router.push(`/dashboard?tab=${value}`, { scroll: false });
   };
 
+  const [dateRange, setDateRange] = useState<DateRange>({
+    to: new Date(),
+    from: subDays(new Date(), 7),
+  });
+
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+
+  const { data: todayEntries } = trpc.journal.getByDate.useQuery({ date: today });
+  const { data: yesterdayEntries } = trpc.journal.getByDate.useQuery({ date: yesterday });
+
+  const todayEntry = todayEntries?.[0];
+  const yesterdayEntry = yesterdayEntries?.[0];
+
+  const sleepDiff = todayEntry?.sleepHours && yesterdayEntry?.sleepHours
+    ? todayEntry.sleepHours - yesterdayEntry.sleepHours
+    : 0;
+
+  const exerciseDiff = todayEntry?.exerciseMinutes && yesterdayEntry?.exerciseMinutes
+    ? todayEntry.exerciseMinutes - yesterdayEntry.exerciseMinutes
+    : 0;
+
   return (
     <div className="flex min-h-screen flex-col">
       <HeaderNav />
@@ -32,7 +57,8 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight text-outline text-primary-light">Dashboard</h2>
           <div className="flex items-center space-x-2">
-            <CalendarDateRangePicker />
+            {/* @ts-ignore */}
+            <CalendarDateRangePicker date={dateRange} setDate={setDateRange} className="bg-primary-light" />
             <Link href={`/entry/${format(new Date(), 'yyyy-MM-dd')}/new`}>
               <Button className="bg-secondary hover:bg-secondary-dark text-white">
                 <Plus className="mr-2 h-4 w-4" /> New Entry
@@ -50,13 +76,13 @@ export default function DashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Card className="card-glass shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-on-glass">Sleep Quality</CardTitle>
+                  <CardTitle className="text-sm font-medium text-on-glass">Sleep</CardTitle>
                   <Moon className="h-4 w-4 text-primary-dark/70" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-on-glass">7.5h</div>
+                  <div className="text-2xl font-bold text-on-glass">{todayEntry?.sleepHours || '-'}h</div>
                   <p className="text-xs text-primary-dark/70">
-                    +0.5h from yesterday
+                    {sleepDiff > 0 ? '+' : ''}{sleepDiff}h from yesterday
                   </p>
                 </CardContent>
               </Card>
@@ -66,9 +92,9 @@ export default function DashboardPage() {
                   <Dumbbell className="h-4 w-4 text-primary-dark/70" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-on-glass">45min</div>
+                  <div className="text-2xl font-bold text-on-glass">{todayEntry?.exerciseMinutes || '-'}min</div>
                   <p className="text-xs text-primary-dark/70">
-                    +10min from yesterday
+                    {exerciseDiff > 0 ? '+' : ''}{exerciseDiff}min from yesterday
                   </p>
                 </CardContent>
               </Card>
@@ -78,24 +104,28 @@ export default function DashboardPage() {
                   <Brain className="h-4 w-4 text-primary-dark/70" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-on-glass">Good</div>
+                  <div className="text-2xl font-bold text-on-glass">{todayEntry?.mood ? `${todayEntry.mood}/10` : '-'}</div>
                   <p className="text-xs text-primary-dark/70">
-                    Improved from yesterday
+                    {todayEntry?.mood && yesterdayEntry?.mood && todayEntry.mood > yesterdayEntry.mood 
+                      ? 'Improved from yesterday'
+                      : todayEntry?.mood && yesterdayEntry?.mood && todayEntry.mood < yesterdayEntry.mood
+                      ? 'Declined from yesterday'
+                      : 'Same as yesterday'}
                   </p>
                 </CardContent>
               </Card>
-              <Card className="card-glass shadow-lg">
+{ /*              <Card className="card-glass shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-on-glass">Medication</CardTitle>
                   <Pill className="h-4 w-4 text-primary-dark/70" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-on-glass">Taken</div>
+                  <div className="text-2xl font-bold text-on-glass">{todayEntry?.medicationTaken ? 'Taken' : 'Not Taken'}</div>
                   <p className="text-xs text-primary-dark/70">
-                    On schedule
+                    {todayEntry?.medicationTaken ? 'On schedule' : 'Off schedule'}
                   </p>
                 </CardContent>
-              </Card>
+              </Card> */ }
             </div>
             <Overview />
           </TabsContent>
@@ -103,7 +133,7 @@ export default function DashboardPage() {
             <Analytics />
           </TabsContent>
           <TabsContent value="journal">
-            <JournalTab />
+            <JournalTab selectedDates={dateRange} />
           </TabsContent>
         </Tabs>
       </div>

@@ -18,7 +18,7 @@ export const userSettings = v3.table('user_settings', {
   userId: text('user_id').notNull(),
   suggestedFeelings: json('suggested_feelings').$type<string[]>().default([]).notNull(),
   suggestedActivities: json('suggested_activities').$type<string[]>().default([]).notNull(),
-  suggestedSymptoms: json('suggested_symptoms').$type<string[]>().default([]).notNull(),
+  suggestedSymptoms: json('suggested_symptoms').$type<{symptom: string, category: string}[]>().default([]).notNull(),
   suggestedSubstances: json('suggested_substances').$type<string[]>().default([]).notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -29,8 +29,8 @@ export const journalEntries = v3.table('journal_entries', {
   userId: text('user_id').notNull(),
   date: date('date').notNull(),
   title: text('title').notNull(),
-  content: text('content').notNull(),
-  mood: integer('mood').notNull(), // 1-10 scale
+  content: text('content'),
+  mood: integer('mood'), // 1-10 scale
   sleepHours: integer('sleep_hours'),
   exerciseMinutes: integer('exercise_minutes'),
   affirmation: text('affirmation'),
@@ -66,7 +66,7 @@ export const substanceUse = v3.table('substance_use', {
   id: uuid('id').defaultRandom().primaryKey(),
   entryId: uuid('entry_id').notNull().references(() => journalEntries.id, { onDelete: 'cascade' }),
   substance: text('substance').notNull(),
-  amount: text('amount'),
+  amount: integer('amount'),
   notes: text('notes'),
 });
 

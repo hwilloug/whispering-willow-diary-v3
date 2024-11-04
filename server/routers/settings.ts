@@ -22,7 +22,10 @@ export const settingsRouter = router({
     .input(z.object({
       suggestedFeelings: z.array(z.string()).optional(),
       suggestedActivities: z.array(z.string()).optional(),
-      suggestedSymptoms: z.array(z.string()).optional(),
+      suggestedSymptoms: z.array(z.object({
+        symptom: z.string(),
+        category: z.string()
+      })).optional(),
       suggestedSubstances: z.array(z.string()).optional()
     }))
     .mutation(async ({ ctx, input }) => {

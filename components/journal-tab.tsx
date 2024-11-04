@@ -23,11 +23,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { format, parse, subDays, isToday } from 'date-fns';
+import { format, parse, isToday } from 'date-fns';
 import Link from 'next/link';
 import { trpc } from '@/lib/trpc';
 import type { inferRouterOutputs } from '@trpc/server';
 import { AppRouter } from '@/server';
+import { DateRange } from 'react-day-picker';
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type Entry = RouterOutput['journal']['getAll'][number];
@@ -38,66 +39,57 @@ type DayEntry = {
   expanded: boolean;
 };
 
-export function JournalTab() {
+interface JournalTabProps {
+  selectedDates: DateRange;
+}
+
+export function JournalTab({ selectedDates }: JournalTabProps) {
   const { data: entries } = trpc.journal.getAll.useQuery()
 
   const [searchQuery, setSearchQuery] = useState('');
   const [dayEntries, setDayEntries] = useState<DayEntry[]>([]);
 
   useEffect(() => {
-    // Create array of last 3 days
-    const last3Days = Array.from({length: 3}, (_, i) => {
-      const date = subDays(new Date(), i);
+    // Group entries by date if we have entries
+    const entriesByDate = entries?.reduce((acc: { [key: string]: Entry[] }, entry) => {
+      const date = parse(entry.date, 'yyyy-MM-dd', new Date());
+      const dateStr = date.toDateString();
+      if (!acc[dateStr]) {
+        acc[dateStr] = [];
+      }
+      acc[dateStr].push(entry);
+      return acc;
+    }, {}) || {};
+
+    if (!selectedDates || !selectedDates.from || !selectedDates.to) {
+      setDayEntries([]);
+      return;
+    }
+
+    // Create array of all dates in range
+    const allDates: Date[] = [];
+    const currentDate = new Date(selectedDates.from.getTime());
+    while (currentDate <= new Date(selectedDates.to.getTime())) {
+      allDates.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Create DayEntry array for all dates in range
+    const dayEntries: DayEntry[] = allDates.map(date => {
       // Set time to midnight for consistent comparison
-      return new Date(date.setHours(0, 0, 0, 0));
+      const normalizedDate = new Date(date.setHours(0, 0, 0, 0));
+      return {
+        date: normalizedDate,
+        entries: entriesByDate[normalizedDate.toDateString()] || [],
+        expanded: isToday(normalizedDate)
+      };
     });
 
-    if (entries) {
-      // Group entries by date
-      const entriesByDate = entries.reduce((acc: { [key: string]: Entry[] }, entry) => {
-        const date = parse(entry.date, 'yyyy-MM-dd', new Date());
-        const dateStr = date.toDateString();
-        if (!acc[dateStr]) {
-          acc[dateStr] = [];
-        }
-        acc[dateStr].push(entry);
-        return acc;
-      }, {});
+    // Sort by date descending
+    dayEntries.sort((a, b) => b.date.getTime() - a.date.getTime());
 
-      // Get all unique dates from entries
-      const entryDates = entries.map(entry => {
-        const date = parse(entry.date, 'yyyy-MM-dd', new Date());
-        return new Date(date.setHours(0, 0, 0, 0));
-      });
-
-      // Combine last 3 days with any additional dates that have entries
-      const allDates = [...last3Days, ...entryDates];
-      const uniqueDates = Array.from(new Set(allDates.map(date => date.getTime())))
-        .map(time => new Date(time));
-
-      // Create DayEntry array including all days
-      const dayEntries: DayEntry[] = uniqueDates.map(date => ({
-        date,
-        entries: entriesByDate[date.toDateString()] || [],
-        expanded: isToday(date)
-      }));
-
-      // Sort by date descending
-      dayEntries.sort((a, b) => b.date.getTime() - a.date.getTime());
-
-      setDayEntries(dayEntries);
-    } else {
-      // If no entries yet, still show empty days
-      const emptyDayEntries = last3Days.map(date => ({
-        date,
-        entries: [],
-        expanded: isToday(date)
-      }));
-      
-      emptyDayEntries.sort((a, b) => b.date.getTime() - a.date.getTime());
-      setDayEntries(emptyDayEntries);
-    }
-  }, [entries]);
+    setDayEntries(dayEntries);
+  }, [entries, selectedDates]);
 
   const toggleDay = (date: Date) => {
     setDayEntries((prev) =>
@@ -113,7 +105,7 @@ export function JournalTab() {
     searchQuery === '' || day.entries.some(
       (entry) =>
         entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        entry.content.toLowerCase().includes(searchQuery.toLowerCase())
+        (entry.content?.toLowerCase() || '').includes(searchQuery.toLowerCase())
     )
   );
 

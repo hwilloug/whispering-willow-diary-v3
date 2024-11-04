@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
 export default function NewEntryPage() {
-  const { date } = useParams()
+  const { date, id } = useParams()
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -28,7 +28,7 @@ export default function NewEntryPage() {
         </div>
       </header>
       <main className="flex-1 container max-w-3xl py-8">
-        <NewEntryForm date={date as string} />
+        <NewEntryForm date={date as string} id={id as string} />
       </main>
     </div>
   );

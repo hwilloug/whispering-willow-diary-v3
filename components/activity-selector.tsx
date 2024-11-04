@@ -6,19 +6,7 @@ import { X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-
-const SUGGESTED_ACTIVITIES = [
-  'Meditation',
-  'Exercise',
-  'Reading',
-  'Work',
-  'Therapy',
-  'Self-care',
-  'Socializing',
-  'Hobbies',
-  'Learning',
-  'Rest',
-];
+import { trpc } from '@/lib/trpc';
 
 interface ActivitySelectorProps {
   selected: {
@@ -33,6 +21,7 @@ export function ActivitySelector({
   onSelect,
 }: ActivitySelectorProps) {
   const [newActivity, setNewActivity] = useState('');
+  const { data: settings } = trpc.settings.get.useQuery();
 
   const addActivity = (activity: string) => {
     if (activity && !selected.some((a) => a.activity === activity)) {
@@ -64,7 +53,7 @@ export function ActivitySelector({
         ))}
       </div>
       <div className="flex flex-wrap gap-2 mb-2">
-        {SUGGESTED_ACTIVITIES.filter(
+        {(settings?.suggestedActivities || []).filter(
           (activity) => !selected.some((a) => a.activity === activity)
         ).map((activity) => (
           <Badge

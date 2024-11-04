@@ -2,72 +2,9 @@
 
 import { Line, LineChart, Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-const weekData = [
-  {
-    name: 'Mon',
-    mood: 8,
-    sleep: 7,
-    exercise: 45,
-    alcohol: 2,
-    cannabis: 1,
-    tobacco: 3,
-  },
-  {
-    name: 'Tue',
-    mood: 7,
-    sleep: 6,
-    exercise: 30,
-    alcohol: 0,
-    cannabis: 2,
-    tobacco: 2,
-  },
-  {
-    name: 'Wed',
-    mood: 9,
-    sleep: 8,
-    exercise: 60,
-    alcohol: 1,
-    cannabis: 0,
-    tobacco: 1,
-  },
-  {
-    name: 'Thu',
-    mood: 6,
-    sleep: 7,
-    exercise: 0,
-    alcohol: 0,
-    cannabis: 1,
-    tobacco: 2,
-  },
-  {
-    name: 'Fri',
-    mood: 8,
-    sleep: 8,
-    exercise: 45,
-    alcohol: 3,
-    cannabis: 1,
-    tobacco: 4,
-  },
-  {
-    name: 'Sat',
-    mood: 7,
-    sleep: 6,
-    exercise: 90,
-    alcohol: 4,
-    cannabis: 2,
-    tobacco: 3,
-  },
-  {
-    name: 'Sun',
-    mood: 9,
-    sleep: 9,
-    exercise: 30,
-    alcohol: 1,
-    cannabis: 1,
-    tobacco: 2,
-  },
-];
+import { trpc } from '@/lib/trpc';
+import { format, parse, subDays } from 'date-fns';
+import { useMemo } from 'react';
 
 export function Overview() {
   const chartConfig = {
@@ -92,6 +29,52 @@ export function Overview() {
       wrapperStyle: { color: '#000000' },
     },
   };
+
+  // Get dates for last 7 days
+  const dates = useMemo(() => {
+    return Array.from({length: 7}, (_, i) => {
+      const date = format(subDays(new Date(), 6-i), 'yyyy-MM-dd');
+      return date;
+    });
+  }, []);
+
+  // Fetch data for each date
+  const queries = dates.map(date => 
+    trpc.journal.getByDate.useQuery({ date })
+  );
+
+  // Transform data for charts
+  const weekData = useMemo(() => {
+    return dates.map((date, i) => {
+      const entry = queries[i].data?.[0];
+      const data: any = {
+        name: format(parse(date, 'yyyy-MM-dd', new Date()), 'EEE'),
+        mood: entry?.mood,
+        sleep: entry?.sleepHours,
+        exercise: entry?.exerciseMinutes,
+      };
+
+      // Add substance amounts dynamically
+      entry?.substances?.forEach(substance => {
+        data[substance.substance] = substance.amount || 0;
+      });
+
+      return data;
+    });
+  }, [dates, queries]);
+
+  // Get unique substances across all entries
+  const substances = useMemo(() => {
+    const substanceSet = new Set<string>();
+    weekData.forEach(day => {
+      Object.keys(day).forEach(key => {
+        if (!['name', 'mood', 'sleep', 'exercise'].includes(key)) {
+          substanceSet.add(key);
+        }
+      });
+    });
+    return substanceSet;
+  }, [weekData]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -187,24 +170,15 @@ export function Overview() {
               />
               <Tooltip {...chartConfig.tooltip} />
               <Legend {...chartConfig.legend} />
-              <Bar
-                dataKey="alcohol"
-                fill="rgb(var(--primary))"
-                name="Alcohol"
-                stackId="stack"
-              />
-              <Bar
-                dataKey="cannabis"
-                fill="rgb(var(--secondary))"
-                name="Cannabis"
-                stackId="stack"
-              />
-              <Bar
-                dataKey="tobacco"
-                fill="rgb(var(--primary-dark))"
-                name="Tobacco"
-                stackId="stack"
-              />
+              {Array.from(substances).map((substance, index) => (
+                <Bar
+                  key={substance}
+                  dataKey={substance}
+                  fill={`rgb(var(${index === 0 ? '--primary' : index === 1 ? '--secondary' : '--primary-dark'}))`}
+                  name={substance}
+                  stackId="stack"
+                />
+              ))}
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

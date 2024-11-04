@@ -1,14 +1,14 @@
 import { z } from 'zod';
 import { protectedProcedure, router } from '../trpc';
 import { db } from '@/db';
-import { journalEntries, entryActivities, entryFeelings, entrySymptoms, substanceUse, journalEntriesRelations } from '@/db/v3.schema';
+import { journalEntries, entryActivities, entryFeelings, entrySymptoms, substanceUse } from '@/db/v3.schema';
 import { eq, and, desc, lte, gte } from 'drizzle-orm';
 
 const createJournalEntrySchema = z.object({
   date: z.string(),
   title: z.string().min(1),
-  content: z.string().min(1),
-  mood: z.number().min(1).max(10),
+  content: z.string().min(1).optional(),
+  mood: z.number().min(1).max(10).optional(),
   sleepHours: z.number().optional(),
   exerciseMinutes: z.number().optional(),
   affirmation: z.string().optional(),
@@ -125,7 +125,7 @@ export const journalRouter = router({
             input.substances.map(({ substance, amount, notes }) => ({
               entryId: entry.id,
               substance,
-              amount,
+              amount: amount ? Number(amount) : null,
               notes
             }))
           );
@@ -198,7 +198,7 @@ export const journalRouter = router({
             input.data.substances.map(({ substance, amount, notes }) => ({
               entryId: entry.id,
               substance,
-              amount,
+              amount: amount ? Number(amount) : null,
               notes
             }))
           );
@@ -252,7 +252,7 @@ export const journalRouter = router({
       };
 
       entries.forEach(entry => {
-        stats.averageMood += entry.mood;
+        if (entry.mood) stats.averageMood += entry.mood;
         if (entry.sleepHours) stats.averageSleep += entry.sleepHours;
         if (entry.exerciseMinutes) stats.averageExercise += entry.exerciseMinutes;
 
