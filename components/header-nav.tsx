@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { UserButton } from '@clerk/nextjs';
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
 import Image from 'next/image';
 
 export function HeaderNav() {
@@ -13,19 +13,26 @@ export function HeaderNav() {
           <span className="text-2xl font-dancing-script text-primary-light">Whispering Willow Diary</span>
         </div>
         <nav className="ml-auto flex items-center gap-4 sm:gap-6">
-          <Link
-            className="text-sm font-medium text-white hover:text-primary-light hover:underline underline-offset-4"
-            href="/dashboard"
-          >
-            Dashboard
-          </Link>
-          <Link
-            className="text-sm font-medium text-white hover:text-primary-light hover:underline underline-offset-4"
-            href="/settings"
-          >
-            Settings
-          </Link>
-          <UserButton />
+          <SignedIn>
+            <Link
+                className="text-sm font-medium text-white hover:text-primary-light hover:underline underline-offset-4"
+              href="/dashboard"
+            >
+              Dashboard
+            </Link>
+            <Link
+              className="text-sm font-medium text-white hover:text-primary-light hover:underline underline-offset-4"
+              href="/settings"
+            >
+              Settings
+            </Link>
+            <UserButton />
+          </SignedIn>
+          <SignedOut>
+            <div className="text-sm font-medium text-primary-light hover:text-white hover:underline underline-offset-4">
+              <SignInButton forceRedirectUrl="/dashboard" />
+            </div>
+          </SignedOut>
         </nav>
       </div>
     </header>
