@@ -249,16 +249,51 @@ export const journalRouter = router({
         }
       });
 
+      // Get all entries for streak calculation
+      const allEntries = await db.query.journalEntries.findMany({
+        where: eq(journalEntries.userId, ctx.userId),
+        orderBy: [desc(journalEntries.date)]
+      });
+
       const stats = {
         totalEntries: entries.length,
         averageMood: 0,
         averageSleep: 0,
         averageExercise: 0,
+        streak: 0,
         topActivities: new Map<string, number>(),
         topFeelings: new Map<string, number>(),
         symptomFrequency: new Map<string, number>(),
         substanceUse: new Map<string, number>()
       };
+
+      // Calculate streak from all entries
+      let currentStreak = 0;
+      let prevDate: Date | null = null;
+
+      for (const entry of allEntries) {
+        const entryDate = new Date(entry.date);
+        
+        if (!prevDate) {
+          currentStreak = 1;
+          prevDate = entryDate;
+          continue;
+        }
+
+        const dayDiff = Math.floor(
+          (prevDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        if (dayDiff === 1) {
+          currentStreak++;
+        } else {
+          break;
+        }
+
+        prevDate = entryDate;
+      }
+
+      stats.streak = currentStreak;
 
       entries.forEach(entry => {
         if (entry.mood) stats.averageMood += entry.mood;

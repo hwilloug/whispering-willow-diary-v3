@@ -9,7 +9,7 @@ import { RecentEntries } from '@/components/recent-entries';
 import { Analytics } from '@/components/analytics';
 import { JournalTab } from '@/components/journal-tab';
 import { DailyAffirmation } from '@/components/daily-affirmation';
-import { Brain, CalendarDays, Dumbbell, Moon, Plus, Pill } from 'lucide-react';
+import { Brain, CalendarDays, Dumbbell, Moon, Plus, Pill, Flame } from 'lucide-react';
 import Link from 'next/link';
 import { format, subDays } from 'date-fns';
 import { HeaderNav } from '@/components/header-nav';
@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab') || 'overview';
 
+
   const handleTabChange = (value: string) => {
     router.push(`/dashboard?tab=${value}`, { scroll: false });
   };
@@ -31,6 +32,8 @@ export default function DashboardPage() {
     to: new Date(),
     from: subDays(new Date(), 7),
   });
+
+  const { data: stats } = trpc.journal.getStats.useQuery({ startDate: format(dateRange.from!, 'yyyy-MM-dd'), endDate: format(dateRange.to!, 'yyyy-MM-dd') });
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -74,6 +77,20 @@ export default function DashboardPage() {
           </TabsList>
           <TabsContent value="overview" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="card-glass shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-on-glass">Entry Streak</CardTitle>
+                  <Flame className="h-4 w-4 text-primary-dark/70" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-on-glass">
+                    {stats?.streak || 0} days
+                  </div>
+                  <p className="text-xs text-primary-dark/70">
+                    {stats?.streak && stats.streak > 0 ? 'Keep it up!' : 'Start your streak today'}
+                  </p>
+                </CardContent>
+              </Card>
               <Card className="card-glass shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-on-glass">Sleep</CardTitle>
@@ -114,18 +131,6 @@ export default function DashboardPage() {
                   </p>
                 </CardContent>
               </Card>
-{ /*              <Card className="card-glass shadow-lg">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-on-glass">Medication</CardTitle>
-                  <Pill className="h-4 w-4 text-primary-dark/70" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-on-glass">{todayEntry?.medicationTaken ? 'Taken' : 'Not Taken'}</div>
-                  <p className="text-xs text-primary-dark/70">
-                    {todayEntry?.medicationTaken ? 'On schedule' : 'Off schedule'}
-                  </p>
-                </CardContent>
-              </Card> */ }
             </div>
             <Overview />
           </TabsContent>
