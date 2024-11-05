@@ -15,7 +15,7 @@ export default async function Home() {
                 <h1 className="text-4xl font-dancing-script tracking-tighter text-primary-dark sm:text-5xl md:text-6xl lg:text-7xl/none">
                   Whispering Willow Diary
                 </h1>
-                <p className="mx-auto max-w-[800px] text-primary-dark md:text-xl dark:text-gray-400 font-ubuntu">
+                <p className="mx-auto max-w-[800px] text-primary-dark md:text-xl font-ubuntu">
                   Your personal wellness companion for tracking mood, sleep, exercise, and daily reflections.
                 </p>
               </div>

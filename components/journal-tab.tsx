@@ -29,6 +29,7 @@ import { trpc } from '@/lib/trpc';
 import type { inferRouterOutputs } from '@trpc/server';
 import { AppRouter } from '@/server';
 import { DateRange } from 'react-day-picker';
+import React from 'react';
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type Entry = RouterOutput['journal']['getAll'][number];
@@ -177,7 +178,14 @@ export function JournalTab({ selectedDates }: JournalTabProps) {
                         </div>
                       </div>
                       <h4 className="font-semibold">{entry.title}</h4>
-                      <p className="text-muted-foreground">{entry.content}</p>
+                      <p className="text-muted-foreground">
+                        {entry.content?.split('\n').map((line, i) => (
+                          <React.Fragment key={i}>
+                            {line}
+                            {i < (entry.content?.split('\n').length || 0) - 1 && <br />}
+                          </React.Fragment>
+                        ))}
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         {entry.activities.map((activity, i) => (
                           <span

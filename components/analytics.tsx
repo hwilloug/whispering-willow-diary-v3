@@ -79,16 +79,41 @@ export function Analytics({ dateRange }: AnalyticsProps) {
   // Transform data for charts
   const weekData = useMemo(() => {
     return dates.map((date, i) => {
-      const entry = queries[i].data?.[0];
+      const entries = queries[i].data || [];
+      
+      // Calculate totals and averages across all entries for the day
+      let totalMood = 0;
+      let totalSleep = 0;
+      let depressionCount = 0;
+      let anxietyCount = 0;
+      let maniaCount = 0;
+      let ocdCount = 0;
+      let adhdCount = 0;
+      let otherCount = 0;
+
+      entries.forEach(entry => {
+        totalMood += entry.mood || 0;
+        totalSleep += entry.sleepHours || 0;
+        depressionCount += getSymptomCount(entry.symptoms, 'Depression');
+        anxietyCount += getSymptomCount(entry.symptoms, 'Anxiety'); 
+        maniaCount += getSymptomCount(entry.symptoms, 'Mania');
+        ocdCount += getSymptomCount(entry.symptoms, 'OCD');
+        adhdCount += getSymptomCount(entry.symptoms, 'ADHD');
+        otherCount += getSymptomCount(entry.symptoms, 'Other');
+      });
+
+      const avgMood = entries.length ? totalMood / entries.length : 0;
+
       return {
         date: format(parse(date, 'yyyy-MM-dd', new Date()), 'EEE'),
-        sleep: entry?.sleepHours || 0,
-        mood: entry?.mood || 0,
-        depression: entry?.symptoms?.find(s => s.category === 'Depression')?.severity || 0,
-        anxiety: entry?.symptoms?.find(s => s.category === 'Anxiety')?.severity || 0,
-        mania: entry?.symptoms?.find(s => s.category === 'Mania')?.severity || 0,
-        ocd: entry?.symptoms?.find(s => s.category === 'OCD')?.severity || 0,
-        adhd: entry?.symptoms?.find(s => s.category === 'ADHD')?.severity || 0
+        sleep: totalSleep,
+        mood: avgMood,
+        depression: depressionCount,
+        anxiety: anxietyCount,
+        mania: maniaCount,
+        ocd: ocdCount,
+        adhd: adhdCount,
+        other: otherCount
       };
     });
   }, [dates, queries]);
@@ -251,10 +276,15 @@ export function Analytics({ dateRange }: AnalyticsProps) {
               <Bar dataKey="mania" stackId="a" fill="rgb(var(--primary-dark))" name="Mania" />
               <Bar dataKey="ocd" stackId="a" fill="#673AB7" name="OCD" />
               <Bar dataKey="adhd" stackId="a" fill="#9575CD" name="ADHD" />
+              <Bar dataKey="other" stackId="a" fill="#E0F0BB" name="Other" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
     </div>
   );
+}
+
+const getSymptomCount = (symptoms: { category: string }[] | undefined, category: string) => {
+  return symptoms?.filter(s => s.category === category).length || 0;
 }
