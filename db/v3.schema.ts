@@ -7,6 +7,7 @@ import {
   date,
   json,
   pgSchema,
+  numeric,
 } from "drizzle-orm/pg-core";
 import { relations } from 'drizzle-orm';
 
@@ -31,7 +32,7 @@ export const journalEntries = v3.table('journal_entries', {
   title: text('title').notNull(),
   content: text('content'),
   mood: integer('mood'), // 1-10 scale
-  sleepHours: integer('sleep_hours'),
+  sleepHours: numeric('sleep_hours'),
   exerciseMinutes: integer('exercise_minutes'),
   affirmation: text('affirmation'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

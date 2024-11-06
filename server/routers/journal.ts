@@ -3,7 +3,7 @@ import { protectedProcedure, router } from '../trpc';
 import { db } from '@/db';
 import { journalEntries, entryActivities, entryFeelings, entrySymptoms, substanceUse } from '@/db/v3.schema';
 import { eq, and, desc, lte, gte, or } from 'drizzle-orm';
-import { format, parse } from 'date-fns';
+import { differenceInDays, format, isEqual, parse } from 'date-fns';
 
 const createJournalEntrySchema = z.object({
   date: z.string(),
@@ -272,19 +272,19 @@ export const journalRouter = router({
       let prevDate: Date | null = null;
 
       for (const entry of allEntries) {
-        const entryDate = new Date(entry.date);
-        
+        const entryDate = parse(entry.date, 'yyyy-MM-dd', new Date());
+
         if (!prevDate) {
-          currentStreak = 1;
+          if (entry.date === format(new Date(), 'yyyy-MM-dd')) currentStreak = 1;
           prevDate = entryDate;
           continue;
         }
 
-        const dayDiff = Math.floor(
-          (prevDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24)
-        );
+        if (format(entryDate, 'yyyy-MM-dd') === format(prevDate, 'yyyy-MM-dd')) continue;
 
-        if (dayDiff === 1) {
+        const dayDiff = differenceInDays(entryDate, prevDate);
+
+        if (dayDiff <= 1) {
           currentStreak++;
         } else {
           break;
@@ -295,9 +295,18 @@ export const journalRouter = router({
 
       stats.streak = currentStreak;
 
+      let avgMoodLength = 0;
+      let avgSleepLength = 0;
+
       entries.forEach(entry => {
-        if (entry.mood) stats.averageMood += entry.mood;
-        if (entry.sleepHours) stats.averageSleep += entry.sleepHours;
+        if (entry.mood) {
+          avgMoodLength += 1;
+          stats.averageMood += entry.mood;
+        }
+        if (entry.sleepHours) {
+          if (Number(entry.sleepHours) > 0) avgSleepLength += 1;
+          stats.averageSleep += Number(entry.sleepHours);
+        }
         if (entry.exerciseMinutes) stats.averageExercise += entry.exerciseMinutes;
 
         entry.activities?.forEach(activity => {
@@ -329,10 +338,11 @@ export const journalRouter = router({
         });
       });
 
-      if (entries.length > 0) {
-        stats.averageMood /= entries.length;
-        stats.averageSleep /= entries.length;
-        stats.averageExercise /= entries.length;
+      if (avgMoodLength > 0) {
+        stats.averageMood /= avgMoodLength;
+      }
+      if (avgSleepLength > 0) {
+        stats.averageSleep /= avgSleepLength;
       }
 
       return {

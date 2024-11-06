@@ -121,6 +121,15 @@ export function Analytics({ dateRange }: AnalyticsProps) {
   const averageMood = stats?.averageMood.toFixed(1) || '-';
   const averageSleep = stats?.averageSleep.toFixed(1) || '-';
 
+  // Transform activity data for pie chart
+  const activityData = useMemo(() => {
+    if (!stats?.topActivities) return [];
+    return Object.entries(stats.topActivities).map(([name, count]) => ({
+      name,
+      value: count
+    }));
+  }, [stats?.topActivities]);
+
   return (
     <div className="grid gap-4">
       <div className="grid gap-4 md:grid-cols-2">
@@ -136,7 +145,7 @@ export function Analytics({ dateRange }: AnalyticsProps) {
 
         <Card className="card-glass shadow-lg">
           <CardHeader>
-            <CardTitle>Sleep Quality</CardTitle>
+            <CardTitle>Sleep</CardTitle>
             <CardDescription>Average hours of sleep</CardDescription>
           </CardHeader>
           <CardContent>
@@ -232,22 +241,23 @@ export function Analytics({ dateRange }: AnalyticsProps) {
         <Card className="card-glass shadow-lg">
           <CardHeader>
             <CardTitle>Activity Distribution</CardTitle>
-            <CardDescription>Number of times each activity was performed</CardDescription>
+            <CardDescription>Number of times an entry included each activity</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={Object.entries(stats?.topActivities || {})}
+                  data={activityData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, count }) => `${name} (${count})`}
+                  label={({ name, value }) => `${name} (${value})`}
                   outerRadius={80}
                   fill="#8884d8"
-                  dataKey="count"
+                  dataKey="value"
+                  nameKey="name"
                 >
-                  {Object.entries(stats?.topActivities || {}).map(([name, count], index) => (
+                  {activityData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
