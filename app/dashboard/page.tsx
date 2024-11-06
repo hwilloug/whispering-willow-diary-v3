@@ -22,7 +22,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab') || 'overview';
-
+  const [isDailyAffirmationHidden, setIsDailyAffirmationHidden] = useState(false);
 
   const handleTabChange = (value: string) => {
     router.push(`/dashboard?tab=${value}`, { scroll: false });
@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const yesterdayEntry = yesterdayEntries?.[0];
 
   const sleepDiff = todayEntry?.sleepHours && yesterdayEntry?.sleepHours
-    ? todayEntry.sleepHours - yesterdayEntry.sleepHours
+    ? Number(todayEntry.sleepHours) - Number(yesterdayEntry.sleepHours)
     : 0;
 
   const exerciseDiff = todayEntry?.exerciseMinutes && yesterdayEntry?.exerciseMinutes
@@ -56,12 +56,10 @@ export default function DashboardPage() {
     <div className="flex min-h-screen flex-col">
       <HeaderNav />
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <DailyAffirmation />
+        <DailyAffirmation isHidden={isDailyAffirmationHidden} onHide={() => setIsDailyAffirmationHidden(true)} />
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight text-outline text-primary-light">Dashboard</h2>
           <div className="flex items-center space-x-2">
-            {/* @ts-ignore */}
-            <CalendarDateRangePicker date={dateRange} setDate={setDateRange} className="bg-primary-light" />
             <Link href={`/entry/${format(new Date(), 'yyyy-MM-dd')}/new`}>
               <Button className="bg-secondary hover:bg-secondary-dark text-white">
                 <Plus className="mr-2 h-4 w-4" /> New Entry
@@ -70,10 +68,14 @@ export default function DashboardPage() {
           </div>
         </div>
         <Tabs value={tab} onValueChange={handleTabChange} className="space-y-4">
-          <TabsList className="bg-primary-dark/80 backdrop-blur-sm shadow-xl border border-black">
+          <TabsList className="flex justify-between items-center">
+            <div className="bg-primary-dark/80 backdrop-blur-sm shadow-xl border border-black">
             <TabsTrigger value="overview" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Overview</TabsTrigger>
             <TabsTrigger value="analytics" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Analytics</TabsTrigger>
             <TabsTrigger value="journal" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Journal</TabsTrigger>
+            </div>
+            {/* @ts-ignore */}
+            { tab !== 'overview' && <CalendarDateRangePicker date={dateRange} setDate={setDateRange} className="bg-primary-light" />}
           </TabsList>
           <TabsContent value="overview" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

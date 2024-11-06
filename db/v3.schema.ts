@@ -67,7 +67,7 @@ export const substanceUse = v3.table('substance_use', {
   id: uuid('id').defaultRandom().primaryKey(),
   entryId: uuid('entry_id').notNull().references(() => journalEntries.id, { onDelete: 'cascade' }),
   substance: text('substance').notNull(),
-  amount: integer('amount'),
+  amount: text('amount'),
   notes: text('notes'),
 });
 

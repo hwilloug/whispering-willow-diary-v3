@@ -75,7 +75,7 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
         severity: symptom.severity ?? undefined,
         category: symptom.category
       })) ?? []);
-      setSleepHours(existingEntry.sleepHours ?? 0);
+      setSleepHours(parseFloat(existingEntry.sleepHours || "0"))
       setAffirmation(existingEntry.affirmation ?? '');
       setFeelings(existingEntry.feelings ?? []);
       setDrugUse(existingEntry.substances?.map(substance => ({
@@ -121,7 +121,7 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
         })),
         substances: drugUse.map(d => ({
           substance: d.substance,
-          amount: d.amount || '',
+          amount: d.amount || '1',
           notes: d.notes || ''
         }))
       });
@@ -145,7 +145,7 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
           })),
           substances: drugUse.map(d => ({
             substance: d.substance,
-            amount: d.amount || '',
+            amount: d.amount || '1',
             notes: d.notes || ''
           }))
         }

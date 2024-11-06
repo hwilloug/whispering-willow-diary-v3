@@ -30,10 +30,15 @@ export function SymptomSelector({ selected, onSelect }: SymptomSelectorProps) {
 
   const addSymptom = (symptomName: string) => {
     if (symptomName && !selected.some(s => s.symptom === symptomName)) {
+      // Check if symptom exists in suggested symptoms
+      const suggestedSymptom = settings?.suggestedSymptoms?.find(
+        s => s.symptom.toLowerCase() === symptomName.toLowerCase()
+      );
+
       onSelect([...selected, {
         symptom: symptomName,
         severity: 5, // Default severity
-        category: newSymptomCategory || 'Other' // Default category
+        category: suggestedSymptom?.category || newSymptomCategory || 'Other'
       }]);
     }
     setNewSymptom('');

@@ -86,7 +86,7 @@ export const journalRouter = router({
             title: input.title,
             content: input.content,
             mood: input.mood,
-            sleepHours: input.sleepHours,
+            sleepHours: input.sleepHours?.toFixed(1),
             exerciseMinutes: input.exerciseMinutes,
             affirmation: input.affirmation,
           })
@@ -126,7 +126,7 @@ export const journalRouter = router({
             input.substances.map(({ substance, amount, notes }) => ({
               entryId: entry.id,
               substance,
-              amount: amount ? Number(amount) : null,
+              amount,
               notes
             }))
           );
@@ -149,7 +149,7 @@ export const journalRouter = router({
             title: input.data.title,
             content: input.data.content,
             mood: input.data.mood,
-            sleepHours: input.data.sleepHours,
+            sleepHours: input.data.sleepHours?.toFixed(1),
             exerciseMinutes: input.data.exerciseMinutes,
             affirmation: input.data.affirmation,
             updatedAt: new Date()
@@ -199,7 +199,7 @@ export const journalRouter = router({
             input.data.substances.map(({ substance, amount, notes }) => ({
               entryId: entry.id,
               substance,
-              amount: amount ? Number(amount) : null,
+              amount,
               notes
             }))
           );

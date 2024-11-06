@@ -51,12 +51,17 @@ export function Overview() {
         name: format(parse(date, 'yyyy-MM-dd', new Date()), 'EEE'),
         mood: entry?.mood,
         sleep: entry?.sleepHours,
-        exercise: entry?.exerciseMinutes,
+        depression: getSymptomCount(entry?.symptoms, 'Depression'),
+        anxiety: getSymptomCount(entry?.symptoms, 'Anxiety'),
+        mania: getSymptomCount(entry?.symptoms, 'Mania'),
+        ocd: getSymptomCount(entry?.symptoms, 'OCD'),
+        adhd: getSymptomCount(entry?.symptoms, 'ADHD'),
+        other: getSymptomCount(entry?.symptoms, 'Other'),
       };
 
       // Add substance amounts dynamically
       entry?.substances?.forEach(substance => {
-        data[substance.substance] = substance.amount || 0;
+        data[`substance_${substance.substance}`] = substance.amount || 0;
       });
 
       return data;
@@ -68,12 +73,12 @@ export function Overview() {
     const substanceSet = new Set<string>();
     weekData.forEach(day => {
       Object.keys(day).forEach(key => {
-        if (!['name', 'mood', 'sleep', 'exercise'].includes(key)) {
-          substanceSet.add(key);
+        if (key.startsWith('substance_')) {
+          substanceSet.add(key.replace('substance_', ''));
         }
       });
     });
-    return substanceSet;
+    return Array.from(substanceSet);
   }, [weekData]);
 
   return (
@@ -118,31 +123,21 @@ export function Overview() {
 
       <Card className="card-glass">
         <CardHeader>
-          <CardTitle>Exercise Duration</CardTitle>
+          <CardTitle>Mental Health Indicators</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={weekData}>
-              <XAxis 
-                dataKey="name" 
-                {...chartConfig.xAxis}
-              />
-              <YAxis 
-                {...chartConfig.yAxis}
-                label={{ 
-                  value: 'Minutes', 
-                  angle: -90, 
-                  position: 'insideLeft',
-                  style: { fill: '#000000' }
-                }}
-              />
+              <XAxis dataKey="name" {...chartConfig.xAxis} />
+              <YAxis {...chartConfig.yAxis} />
               <Tooltip {...chartConfig.tooltip} />
               <Legend {...chartConfig.legend} />
-              <Bar
-                dataKey="exercise"
-                fill="rgb(var(--primary))"
-                name="Exercise (minutes)"
-              />
+              <Bar dataKey="depression" stackId="a" fill="rgb(var(--primary))" name="Depression" />
+              <Bar dataKey="anxiety" stackId="a" fill="rgb(var(--secondary))" name="Anxiety" />
+              <Bar dataKey="mania" stackId="a" fill="rgb(var(--primary-dark))" name="Mania" />
+              <Bar dataKey="ocd" stackId="a" fill="#673AB7" name="OCD" />
+              <Bar dataKey="adhd" stackId="a" fill="#9575CD" name="ADHD" />
+              <Bar dataKey="other" stackId="a" fill="#E0F0BB" name="Other" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -170,10 +165,10 @@ export function Overview() {
               />
               <Tooltip {...chartConfig.tooltip} />
               <Legend {...chartConfig.legend} />
-              {Array.from(substances).map((substance, index) => (
+              {substances.map((substance, index) => (
                 <Bar
                   key={substance}
-                  dataKey={substance}
+                  dataKey={`substance_${substance}`}
                   fill={`rgb(var(${index === 0 ? '--primary' : index === 1 ? '--secondary' : '--primary-dark'}))`}
                   name={substance}
                   stackId="stack"
@@ -185,4 +180,8 @@ export function Overview() {
       </Card>
     </div>
   );
+}
+
+const getSymptomCount = (symptoms: { category: string }[] | undefined, category: string) => {
+  return symptoms?.filter(s => s.category === category).length || 0;
 }

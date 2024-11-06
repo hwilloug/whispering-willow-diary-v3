@@ -93,7 +93,7 @@ export function Analytics({ dateRange }: AnalyticsProps) {
 
       entries.forEach(entry => {
         totalMood += entry.mood || 0;
-        totalSleep += entry.sleepHours || 0;
+        totalSleep += Number(entry.sleepHours) || 0;
         depressionCount += getSymptomCount(entry.symptoms, 'Depression');
         anxietyCount += getSymptomCount(entry.symptoms, 'Anxiety'); 
         maniaCount += getSymptomCount(entry.symptoms, 'Mania');

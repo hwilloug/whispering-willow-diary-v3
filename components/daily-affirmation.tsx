@@ -8,11 +8,16 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ThumbsUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { trpc } from '@/lib/trpc';
 
-export function DailyAffirmation() {
+interface DailyAffirmationProps {
+  isHidden?: boolean;
+  onHide?: () => void;
+}
+
+export function DailyAffirmation({ isHidden = false, onHide }: DailyAffirmationProps) {
   const { data } = trpc.journal.getAll.useQuery();
 
   const affirmation = useMemo(() => {
@@ -26,12 +31,22 @@ export function DailyAffirmation() {
     return latestAffirmation
   }, [data]);
 
-  if (!affirmation) return null;
+  if (!affirmation || isHidden) return null;
 
   return (
     <Card className="card-glass text-center bg-secondary/60">
-      <CardHeader>
+      <CardHeader className="relative">
         <CardTitle>🌸 Daily Affirmation 🌸</CardTitle>
+        {!isHidden && onHide && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-4"
+            onClick={onHide}
+          >
+            <ThumbsUp className="h-4 w-4" />
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="flex items-center justify-center">
         <p className="text-lg font-medium">{affirmation}</p>
