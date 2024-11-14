@@ -41,7 +41,7 @@ type DayEntry = {
 };
 
 interface JournalTabProps {
-  selectedDates: DateRange;
+  selectedDates: { from?: Date, to?: Date };
 }
 
 export function JournalTab({ selectedDates }: JournalTabProps) {

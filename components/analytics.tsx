@@ -52,34 +52,39 @@ const chartConfig = {
 };
 
 interface AnalyticsProps {
-  dateRange: DateRange;
+  dateRange: { from?: Date, to?: Date };
 }
 
 export function Analytics({ dateRange }: AnalyticsProps) {
-  // Get dates from date range
   const dates = useMemo(() => {
-    if (!dateRange.from || !dateRange.to) return [];
+    if (!dateRange?.from || !dateRange?.to) {
+      return [];
+    }
+    
     return eachDayOfInterval({ 
       start: dateRange.from,
       end: dateRange.to
     }).map(date => format(date, 'yyyy-MM-dd'));
-  }, [dateRange]);
+  }, [dateRange.from, dateRange.to]); 
 
   // Fetch data for each date
   const queries = dates.map(date => 
     trpc.journal.getByDate.useQuery({ date })
-  );
+  ) || [];
 
-  // Get stats for date range
+    // Get stats for date range
   const { data: stats } = trpc.journal.getStats.useQuery({
-    startDate: dates[0],
-    endDate: dates[dates.length - 1]
+    startDate: format(dateRange.from || new Date(), 'yyyy-MM-dd'),
+    endDate: format(dateRange.to || new Date(), 'yyyy-MM-dd')
   });
 
   // Transform data for charts
+  // @ts-ignore
   const weekData = useMemo(() => {
+    if (!dates || !queries) return [];
+
     return dates.map((date, i) => {
-      const entries = queries[i].data || [];
+      const entries = queries[i]?.data || [];
       
       // Calculate totals and averages across all entries for the day
       let totalMood = 0;
@@ -116,7 +121,7 @@ export function Analytics({ dateRange }: AnalyticsProps) {
         other: otherCount
       };
     });
-  }, [dates, queries]);
+  }, [[...dates], [...queries]]);
 
   const averageMood = stats?.averageMood.toFixed(1) || '-';
   const averageSleep = stats?.averageSleep.toFixed(1) || '-';

@@ -28,12 +28,12 @@ export default function DashboardPage() {
     router.push(`/dashboard?tab=${value}`, { scroll: false });
   };
 
-  const [dateRange, setDateRange] = useState<DateRange>({
-    to: new Date(),
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 7),
+    to: new Date(),
   });
 
-  const { data: stats } = trpc.journal.getStats.useQuery({ startDate: format(dateRange.from!, 'yyyy-MM-dd'), endDate: format(dateRange.to!, 'yyyy-MM-dd') });
+  const { data: stats } = trpc.journal.getStats.useQuery({ startDate: format(dateRange?.from || new Date(), 'yyyy-MM-dd'), endDate: format(dateRange?.to || new Date(), 'yyyy-MM-dd') });
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -137,10 +137,10 @@ export default function DashboardPage() {
             <Overview />
           </TabsContent>
           <TabsContent value="analytics">
-            <Analytics dateRange={dateRange} />
+            <Analytics dateRange={dateRange || {}} />
           </TabsContent>
           <TabsContent value="journal">
-            <JournalTab selectedDates={dateRange} />
+            <JournalTab selectedDates={dateRange || {}} />
           </TabsContent>
         </Tabs>
       </div>
