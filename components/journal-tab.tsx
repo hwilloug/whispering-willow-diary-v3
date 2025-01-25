@@ -126,100 +126,120 @@ export function JournalTab({ selectedDates }: JournalTabProps) {
 
       <div className="grid gap-4">
         {filteredEntries.map((day) => (
-          <Card key={day.date.toISOString()} className="card-glass">
-            <Collapsible open={day.expanded}>
-              <CollapsibleTrigger asChild>
-                <CardHeader
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => toggleDay(day.date)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>
-                        {format(day.date, 'EEEE, MMMM d, yyyy')}
-                      </CardTitle>
-                      <CardDescription>
-                        {day.entries.length} {day.entries.length === 1 ? 'entry' : 'entries'}
-                      </CardDescription>
-                    </div>
-                    {day.expanded ? (
-                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent style={{ padding: 0 }}>
-                  {day.entries.map((entry, index) => (
-                    <div
-                      key={index}
-                      className="bg-primary-light border m-2 py-2 px-4 rounded-lg hover:bg-muted/50"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{format(entry.createdAt, 'h:mm a')}</span>
-                          <span className="text-sm text-muted-foreground">
-                            Mood: {entry.mood}/10
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                          <Link
-                            href={`/entry/${format(day.date, 'yyyy-MM-dd')}/${entry.id}`}
-                          >
-                            <Button variant="ghost" size="icon">
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Button variant="ghost" size="icon">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      <h4 className="font-semibold">{entry.title}</h4>
-                      <p className="text-muted-foreground">
-                        {entry.content?.split('\n').map((line, i) => (
-                          <React.Fragment key={i}>
-                            {line}
-                            {i < (entry.content?.split('\n').length || 0) - 1 && <br />}
-                          </React.Fragment>
-                        ))}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {entry.activities.map((activity, i) => (
-                          <span
-                            key={i}
-                            className="bg-primary/10 text-primary text-sm px-2 py-1 rounded"
-                          >
-                            {activity.activity}
-                          </span>
-                        ))}
-                        {entry.symptoms.map((symptom, i) => (
-                          <span
-                            key={i}
-                            className="bg-destructive/10 text-destructive text-sm px-2 py-1 rounded"
-                          >
-                            {symptom.symptom}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  <Link href={`/entry/${format(day.date, 'yyyy-MM-dd')}/new`}>
-                    <Button
-                      variant="outline"
-                      className="w-full bg-primary-dark text-white border-none"
-                    >
-                      <Plus className="mr-2 h-4 w-4" /> Add Entry for This Day
-                    </Button>
-                  </Link>
-                </CardContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </Card>
+          <DayEntries day={day} toggleDay={toggleDay} />
         ))}
       </div>
     </div>
   );
+}
+
+const DayEntries = ({day, toggleDay}: {day: DayEntry, toggleDay: (date: Date) => void}) => {
+  return (
+    <Card key={day.date.toISOString()} className="card-glass">
+    <Collapsible open={day.expanded}>
+      <CollapsibleTrigger asChild>
+        <CardHeader
+          className="cursor-pointer hover:bg-muted/50"
+          onClick={() => toggleDay(day.date)}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>
+                {format(day.date, 'EEEE, MMMM d, yyyy')}
+              </CardTitle>
+              <CardDescription>
+                {day.entries.length} {day.entries.length === 1 ? 'entry' : 'entries'}
+              </CardDescription>
+            </div>
+            {day.expanded ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+        </CardHeader>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <CardContent style={{ padding: 0 }}>
+          {day.entries.map((entry, index) => (
+            <EntryCard key={index} entry={entry} day={day} />
+          ))}
+          <Link href={`/entry/${format(day.date, 'yyyy-MM-dd')}/new`}>
+            <Button
+              variant="outline"
+              className="w-full bg-primary-dark text-white border-none"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Entry for This Day
+            </Button>
+          </Link>
+        </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  )
+}
+
+const EntryCard = ({entry, day}: {entry: Entry, day: DayEntry}) => {
+  return (
+    <div
+    className="bg-primary-light border m-2 py-2 px-4 rounded-lg hover:bg-muted/50"
+  >
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <span className="font-medium">{format(entry.createdAt, 'h:mm a')}</span>
+        <span className="text-sm text-muted-foreground">
+          Mood: {entry.mood}/10
+        </span>
+      </div>
+      <div className="flex gap-2">
+        <Link
+          href={`/entry/${format(day.date, 'yyyy-MM-dd')}/${entry.id}`}
+        >
+          <Button variant="ghost" size="icon">
+            <Edit2 className="h-4 w-4" />
+          </Button>
+        </Link>
+        <Button variant="ghost" size="icon">
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+    <h4 className="font-semibold">{entry.title}</h4>
+    <p className="text-muted-foreground">
+      {entry.content?.split('\n').map((line, i) => (
+        <React.Fragment key={i}>
+          {line}
+          {i < (entry.content?.split('\n').length || 0) - 1 && <br />}
+        </React.Fragment>
+      ))}
+    </p>
+    <div className="flex flex-wrap gap-2">
+      {entry.activities.map((activity, i) => (
+        <span
+          key={i}
+          className="bg-primary/10 text-primary text-sm px-2 py-1 rounded"
+        >
+          {activity.activity}
+        </span>
+      ))}
+      {entry.symptoms.map((symptom, i) => (
+        <span
+          key={i}
+          className="bg-destructive/10 text-destructive text-sm px-2 py-1 rounded"
+        >
+          {symptom.symptom}
+        </span>
+      ))}
+    </div>
+  </div>
+  )
+}
+
+const Pagination = ({page, setPage}: {page: number, setPage: (page: number) => void}) => {
+  return (
+    <div className="space-x-2">
+      <Button>Previous Page</Button>
+      <Button>Next Page</Button>
+    </div>
+  )
 }

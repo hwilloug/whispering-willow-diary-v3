@@ -1,138 +1,34 @@
 import { z } from 'zod';
 import { protectedProcedure, router } from '../trpc';
 import { db } from '@/db';
-import { journalEntries, entryActivities, entryFeelings, entrySymptoms, substanceUse } from '@/db/v3.schema';
-import { eq, and, desc, lte, gte, or } from 'drizzle-orm';
-import { differenceInDays, format, isEqual, parse } from 'date-fns';
-
-const createJournalEntrySchema = z.object({
-  date: z.string(),
-  title: z.string().min(1),
-  content: z.string().min(1).optional(),
-  mood: z.number().min(1).max(10).optional(),
-  sleepHours: z.number().optional(),
-  exerciseMinutes: z.number().optional(),
-  affirmation: z.string().optional(),
-  activities: z.array(z.string()).optional(),
-  feelings: z.array(z.string()).optional(),
-  symptoms: z.array(z.object({
-    symptom: z.string(),
-    severity: z.number().min(1).max(10),
-    category: z.string()
-  })).optional(),
-  substances: z.array(z.object({
-    substance: z.string(),
-    amount: z.string().optional(),
-    notes: z.string().optional()
-  })).optional()
-});
+import { createJournalEntrySchema } from '../schemas/journal.schema';
+import { JournalService } from '../services/journal.service';
+import { StatsCalculator } from '../utils/stats.utils';
+import { format, parse } from 'date-fns';
 
 export const journalRouter = router({
-  getAll: protectedProcedure.query(async ({ ctx }) => {
-    return await db.query.journalEntries.findMany({
-      where: eq(journalEntries.userId, ctx.userId),
-      orderBy: [desc(journalEntries.date)],
-      with: {
-        activities: true,
-        feelings: true,
-        symptoms: true,
-        substances: true
-      }
-    });
-  }),
+  getAll: protectedProcedure
+    .query(async ({ ctx }) => {
+      return await JournalService.getAllEntries(ctx.userId);
+    }),
+
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      return await db.query.journalEntries.findFirst({
-        where: and(
-          eq(journalEntries.userId, ctx.userId),
-          eq(journalEntries.id, input.id)
-        ),
-        with: {
-          activities: true,
-          feelings: true,
-          symptoms: true,
-          substances: true
-        }
-      });
+      return await JournalService.getEntryById(ctx.userId, input.id);
     }),
 
   getByDate: protectedProcedure
     .input(z.object({ date: z.string() }))
     .query(async ({ ctx, input }) => {
-      return await db.query.journalEntries.findMany({
-        where: and(
-          eq(journalEntries.userId, ctx.userId),
-          eq(journalEntries.date, input.date)
-        ),
-        with: {
-          activities: true,
-          feelings: true,
-          symptoms: true,
-          substances: true
-        }
-      });
+      return await JournalService.getEntriesByDate(ctx.userId, input.date);
     }),
 
   create: protectedProcedure
     .input(createJournalEntrySchema)
     .mutation(async ({ ctx, input }) => {
       return await db.transaction(async (tx) => {
-        const [entry] = await tx
-          .insert(journalEntries)
-          .values({
-            userId: ctx.userId,
-            date: input.date,
-            title: input.title,
-            content: input.content,
-            mood: input.mood,
-            sleepHours: input.sleepHours?.toFixed(1),
-            exerciseMinutes: input.exerciseMinutes,
-            affirmation: input.affirmation,
-          })
-          .returning();
-
-        if (input.activities && input.activities.length > 0) {
-          await tx.insert(entryActivities).values(
-            input.activities.map(activity => ({
-              entryId: entry.id,
-              activity
-            }))
-          );
-        }
-
-        if (input.feelings && input.feelings.length > 0) {
-          await tx.insert(entryFeelings).values(
-            input.feelings.map(feeling => ({
-              entryId: entry.id,
-              feeling
-            }))
-          );
-        }
-
-        if (input.symptoms && input.symptoms.length > 0) {
-          await tx.insert(entrySymptoms).values(
-            input.symptoms.map(({ symptom, severity, category }) => ({
-              entryId: entry.id,
-              symptom,
-              severity,
-              category
-            }))
-          );
-        }
-
-        if (input.substances && input.substances.length > 0) {
-          await tx.insert(substanceUse).values(
-            input.substances.map(({ substance, amount, notes }) => ({
-              entryId: entry.id,
-              substance,
-              amount,
-              notes
-            }))
-          );
-        }
-
-        return entry;
+        return await JournalService.createEntry(tx, ctx.userId, input);
       });
     }),
 
@@ -143,82 +39,14 @@ export const journalRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       return await db.transaction(async (tx) => {
-        const [entry] = await tx
-          .update(journalEntries)
-          .set({
-            title: input.data.title,
-            content: input.data.content,
-            mood: input.data.mood,
-            sleepHours: input.data.sleepHours?.toFixed(1),
-            exerciseMinutes: input.data.exerciseMinutes,
-            affirmation: input.data.affirmation,
-            updatedAt: new Date()
-          })
-          .where(and(
-            eq(journalEntries.id, input.id),
-            eq(journalEntries.userId, ctx.userId)
-          ))
-          .returning();
-
-        await tx.delete(entryActivities).where(eq(entryActivities.entryId, input.id));
-        await tx.delete(entryFeelings).where(eq(entryFeelings.entryId, input.id));
-        await tx.delete(entrySymptoms).where(eq(entrySymptoms.entryId, input.id));
-        await tx.delete(substanceUse).where(eq(substanceUse.entryId, input.id));
-
-        if (input.data.activities && input.data.activities.length > 0) {
-          await tx.insert(entryActivities).values(
-            input.data.activities.map(activity => ({
-              entryId: entry.id,
-              activity
-            }))
-          );
-        }
-
-        if (input.data.feelings && input.data.feelings.length > 0) {
-          await tx.insert(entryFeelings).values(
-            input.data.feelings.map(feeling => ({
-              entryId: entry.id,
-              feeling
-            }))
-          );
-        }
-
-        if (input.data.symptoms && input.data.symptoms.length > 0) {
-          await tx.insert(entrySymptoms).values(
-            input.data.symptoms.map(({ symptom, severity, category }) => ({
-              entryId: entry.id,
-              symptom,
-              severity,
-              category
-            }))
-          );
-        }
-
-        if (input.data.substances && input.data.substances.length > 0) {
-          await tx.insert(substanceUse).values(
-            input.data.substances.map(({ substance, amount, notes }) => ({
-              entryId: entry.id,
-              substance,
-              amount,
-              notes
-            }))
-          );
-        }
-
-        return entry;
+        return await JournalService.updateEntry(tx, ctx.userId, input.id, input.data);
       });
     }),
 
   delete: protectedProcedure
     .input(z.string().uuid())
     .mutation(async ({ ctx, input }) => {
-      return await db
-        .delete(journalEntries)
-        .where(and(
-          eq(journalEntries.id, input),
-          eq(journalEntries.userId, ctx.userId)
-        ))
-        .returning();
+      return await JournalService.deleteEntry(ctx.userId, input);
     }),
 
   getStats: protectedProcedure
@@ -227,6 +55,7 @@ export const journalRouter = router({
       endDate: z.string()
     }))
     .query(async ({ ctx, input }) => {
+      // Generate date range
       const dates = [];
       let currentDate = parse(input.startDate, 'yyyy-MM-dd', new Date());
       const endDate = parse(input.endDate, 'yyyy-MM-dd', new Date());
@@ -236,121 +65,34 @@ export const journalRouter = router({
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
-      const entries = await db.query.journalEntries.findMany({
-        where: and(
-          eq(journalEntries.userId, ctx.userId),
-          or(...dates.map(date => eq(journalEntries.date, date)))
-        ),
-        with: {
-          activities: true,
-          feelings: true,
-          symptoms: true,
-          substances: true
-        }
-      });
-
+      // Get entries for the date range
+      const entries = await JournalService.getEntriesInDateRange(ctx.userId, dates);
+      
       // Get all entries for streak calculation
-      const allEntries = await db.query.journalEntries.findMany({
-        where: eq(journalEntries.userId, ctx.userId),
-        orderBy: [desc(journalEntries.date)]
-      });
+      const allEntries = await JournalService.getAllEntriesForStreak(ctx.userId);
 
-      const stats = {
-        totalEntries: entries.length,
-        averageMood: 0,
-        averageSleep: 0,
-        averageExercise: 0,
-        streak: 0,
-        topActivities: new Map<string, number>(),
-        topFeelings: new Map<string, number>(),
-        symptomFrequency: new Map<string, number>(),
-        substanceUse: new Map<string, number>()
-      };
-
-      // Calculate streak from all entries
-      let currentStreak = 0;
-      let prevDate: Date | null = null;
-
-      for (const entry of allEntries) {
-        const entryDate = parse(entry.date, 'yyyy-MM-dd', new Date());
-
-        if (!prevDate) {
-          if (entry.date === format(new Date(), 'yyyy-MM-dd')) currentStreak = 1;
-          prevDate = entryDate;
-          continue;
-        }
-
-        if (format(entryDate, 'yyyy-MM-dd') === format(prevDate, 'yyyy-MM-dd')) continue;
-
-        const dayDiff = differenceInDays(entryDate, prevDate);
-
-        if (dayDiff <= 1) {
-          currentStreak++;
-        } else {
-          break;
-        }
-
-        prevDate = entryDate;
-      }
-
-      stats.streak = currentStreak;
-
-      let avgMoodLength = 0;
-      let avgSleepLength = 0;
-
-      entries.forEach(entry => {
-        if (entry.mood) {
-          avgMoodLength += 1;
-          stats.averageMood += entry.mood;
-        }
-        if (entry.sleepHours) {
-          if (Number(entry.sleepHours) > 0) avgSleepLength += 1;
-          stats.averageSleep += Number(entry.sleepHours);
-        }
-        if (entry.exerciseMinutes) stats.averageExercise += entry.exerciseMinutes;
-
-        entry.activities?.forEach(activity => {
-          stats.topActivities.set(
-            activity.activity,
-            (stats.topActivities.get(activity.activity) || 0) + 1
-          );
-        });
-
-        entry.feelings?.forEach(feeling => {
-          stats.topFeelings.set(
-            feeling.feeling,
-            (stats.topFeelings.get(feeling.feeling) || 0) + 1
-          );
-        });
-
-        entry.symptoms?.forEach(symptom => {
-          stats.symptomFrequency.set(
-            symptom.symptom,
-            (stats.symptomFrequency.get(symptom.symptom) || 0) + 1
-          );
-        });
-
-        entry.substances?.forEach(substance => {
-          stats.substanceUse.set(
-            substance.substance,
-            (stats.substanceUse.get(substance.substance) || 0) + 1
-          );
-        });
-      });
-
-      if (avgMoodLength > 0) {
-        stats.averageMood /= avgMoodLength;
-      }
-      if (avgSleepLength > 0) {
-        stats.averageSleep /= avgSleepLength;
-      }
+      // Calculate stats
+      const streak = StatsCalculator.calculateStreak(allEntries);
+      const {
+        averageMood,
+        averageSleep,
+        averageExercise,
+        topActivities,
+        topFeelings,
+        symptomFrequency,
+        substanceUse
+      } = StatsCalculator.calculateAverages(entries);
 
       return {
-        ...stats,
-        topActivities: Object.fromEntries(stats.topActivities),
-        topFeelings: Object.fromEntries(stats.topFeelings),
-        symptomFrequency: Object.fromEntries(stats.symptomFrequency),
-        substanceUse: Object.fromEntries(stats.substanceUse)
+        totalEntries: entries.length,
+        averageMood,
+        averageSleep,
+        averageExercise,
+        streak,
+        topActivities: Object.fromEntries(topActivities),
+        topFeelings: Object.fromEntries(topFeelings),
+        symptomFrequency: Object.fromEntries(symptomFrequency),
+        substanceUse: Object.fromEntries(substanceUse)
       };
     })
 });
