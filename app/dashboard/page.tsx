@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { format, subDays } from 'date-fns';
 import { HeaderNav } from '@/components/header-nav';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DateRange } from 'react-day-picker';
 import { trpc } from '@/lib/trpc';
 
@@ -41,15 +41,34 @@ export default function DashboardPage() {
   const { data: todayEntries } = trpc.journal.getByDate.useQuery({ date: today });
   const { data: yesterdayEntries } = trpc.journal.getByDate.useQuery({ date: yesterday });
 
-  const todayEntry = todayEntries?.[0];
-  const yesterdayEntry = yesterdayEntries?.[0];
+  const todayStats = useMemo(() => {
+    if (!todayEntries?.length) return { sleep: 0, mood: 0, exercise: 0 };
+    
+    const totalSleep = todayEntries.reduce((sum, entry) => sum + (entry.sleepHours ? Number(entry.sleepHours) : 0), 0);
+    const moodEntries = todayEntries.filter(entry => entry.mood);
+    const avgMood = moodEntries.length ? moodEntries.reduce((sum, entry) => sum + entry.mood!, 0) / moodEntries.length : 0;
+    const totalExercise = todayEntries.reduce((sum, entry) => sum + (entry.exerciseMinutes || 0), 0);
 
-  const sleepDiff = todayEntry?.sleepHours && yesterdayEntry?.sleepHours
-    ? Number(todayEntry.sleepHours) - Number(yesterdayEntry.sleepHours)
+    return { sleep: totalSleep, mood: avgMood, exercise: totalExercise };
+  }, [todayEntries]);
+
+  const yesterdayStats = useMemo(() => {
+    if (!yesterdayEntries?.length) return { sleep: 0, mood: 0, exercise: 0 };
+    
+    const totalSleep = yesterdayEntries.reduce((sum, entry) => sum + (entry.sleepHours ? Number(entry.sleepHours) : 0), 0);
+    const moodEntries = yesterdayEntries.filter(entry => entry.mood);
+    const avgMood = moodEntries.length ? moodEntries.reduce((sum, entry) => sum + entry.mood!, 0) / moodEntries.length : 0;
+    const totalExercise = yesterdayEntries.reduce((sum, entry) => sum + (entry.exerciseMinutes || 0), 0);
+
+    return { sleep: totalSleep, mood: avgMood, exercise: totalExercise };
+  }, [yesterdayEntries]);
+
+  const sleepDiff = todayStats.sleep && yesterdayStats.sleep
+    ? todayStats.sleep - yesterdayStats.sleep
     : 0;
 
-  const exerciseDiff = todayEntry?.exerciseMinutes && yesterdayEntry?.exerciseMinutes
-    ? todayEntry.exerciseMinutes - yesterdayEntry.exerciseMinutes
+  const exerciseDiff = todayStats.exercise && yesterdayStats.exercise
+    ? todayStats.exercise - yesterdayStats.exercise
     : 0;
 
   return (
@@ -99,7 +118,7 @@ export default function DashboardPage() {
                   <Moon className="h-4 w-4 text-primary-dark/70" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-on-glass">{todayEntry?.sleepHours || '-'}h</div>
+                  <div className="text-2xl font-bold text-on-glass">{todayStats.sleep || '-'}h</div>
                   <p className="text-xs text-primary-dark/70">
                     {sleepDiff > 0 ? '+' : ''}{sleepDiff}h from yesterday
                   </p>
@@ -111,7 +130,7 @@ export default function DashboardPage() {
                   <Dumbbell className="h-4 w-4 text-primary-dark/70" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-on-glass">{todayEntry?.exerciseMinutes || '-'}min</div>
+                  <div className="text-2xl font-bold text-on-glass">{todayStats.exercise || '-'}min</div>
                   <p className="text-xs text-primary-dark/70">
                     {exerciseDiff > 0 ? '+' : ''}{exerciseDiff}min from yesterday
                   </p>
@@ -119,15 +138,15 @@ export default function DashboardPage() {
               </Card>
               <Card className="card-glass shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-on-glass">Mental Health</CardTitle>
+                  <CardTitle className="text-sm font-medium text-on-glass">Mood</CardTitle>
                   <Brain className="h-4 w-4 text-primary-dark/70" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-on-glass">{todayEntry?.mood ? `${todayEntry.mood}/10` : '-'}</div>
+                  <div className="text-2xl font-bold text-on-glass">{todayStats.mood ? `${todayStats.mood}/10` : '-'}</div>
                   <p className="text-xs text-primary-dark/70">
-                    {todayEntry?.mood && yesterdayEntry?.mood && todayEntry.mood > yesterdayEntry.mood 
+                    {todayStats.mood && yesterdayStats.mood && todayStats.mood > yesterdayStats.mood 
                       ? 'Improved from yesterday'
-                      : todayEntry?.mood && yesterdayEntry?.mood && todayEntry.mood < yesterdayEntry.mood
+                      : todayStats.mood && yesterdayStats.mood && todayStats.mood < yesterdayStats.mood
                       ? 'Declined from yesterday'
                       : 'Same as yesterday'}
                   </p>

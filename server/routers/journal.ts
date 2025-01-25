@@ -8,8 +8,14 @@ import { format, parse } from 'date-fns';
 
 export const journalRouter = router({
   getAll: protectedProcedure
-    .query(async ({ ctx }) => {
-      return await JournalService.getAllEntries(ctx.userId);
+    .input(z.object({
+      page: z.number().optional(),
+      limit: z.number().optional(),
+      sortBy: z.string().optional(),
+      sortOrder: z.enum(['asc', 'desc']).optional()
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      return await JournalService.getAllEntries(ctx.userId, input);
     }),
 
   getById: protectedProcedure

@@ -17,6 +17,7 @@ export function Overview() {
       stroke: '#000000',
       tick: { fill: '#000000' },
       style: { fontSize: '12px' },
+      domain: [0, "auto"],
     },
     tooltip: {
       contentStyle: {
@@ -46,22 +47,34 @@ export function Overview() {
   // Transform data for charts
   const weekData = useMemo(() => {
     return dates.map((date, i) => {
-      const entry = queries[i].data?.[0];
+      const entries = queries[i].data || [];
       const data: any = {
         name: format(parse(date, 'yyyy-MM-dd', new Date()), 'EEE'),
-        mood: entry?.mood,
-        sleep: entry?.sleepHours,
-        depression: getSymptomCount(entry?.symptoms, 'Depression'),
-        anxiety: getSymptomCount(entry?.symptoms, 'Anxiety'),
-        mania: getSymptomCount(entry?.symptoms, 'Mania'),
-        ocd: getSymptomCount(entry?.symptoms, 'OCD'),
-        adhd: getSymptomCount(entry?.symptoms, 'ADHD'),
-        other: getSymptomCount(entry?.symptoms, 'Other'),
       };
 
-      // Add substance amounts dynamically
-      entry?.substances?.forEach(substance => {
-        data[`substance_${substance.substance}`] = substance.amount || 0;
+      // Calculate average mood (excluding entries with no mood)
+      const moodEntries = entries.filter(entry => entry.mood != null);
+      data.mood = moodEntries.length > 0 
+        ? moodEntries.reduce((sum, entry) => sum + entry.mood!, 0) / moodEntries.length
+        : null;
+
+      // Sum up sleep hours
+      data.sleep = entries.reduce((sum, entry) => sum + (Number(entry.sleepHours) || 0), 0);
+
+      // Sum up symptom counts across all entries
+      data.depression = entries.reduce((sum, entry) => sum + getSymptomCount(entry.symptoms, 'Depression'), 0);
+      data.anxiety = entries.reduce((sum, entry) => sum + getSymptomCount(entry.symptoms, 'Anxiety'), 0);
+      data.mania = entries.reduce((sum, entry) => sum + getSymptomCount(entry.symptoms, 'Mania'), 0);
+      data.ocd = entries.reduce((sum, entry) => sum + getSymptomCount(entry.symptoms, 'OCD'), 0);
+      data.adhd = entries.reduce((sum, entry) => sum + getSymptomCount(entry.symptoms, 'ADHD'), 0);
+      data.other = entries.reduce((sum, entry) => sum + getSymptomCount(entry.symptoms, 'Other'), 0);
+
+      // Sum up substance amounts across all entries
+      entries.forEach(entry => {
+        entry.substances?.forEach(substance => {
+          const key = `substance_${substance.substance}`;
+          data[key] = (data[key] || 0) + (substance.amount || 0);
+        });
       });
 
       return data;

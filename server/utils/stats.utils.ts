@@ -2,31 +2,43 @@ import { differenceInDays, parse, format } from 'date-fns';
 
 export class StatsCalculator {
   static calculateStreak(entries: any[]) {
-    let currentStreak = 0;
-    let prevDate: Date | null = null;
+    if (!entries.length) return 0;
 
-    for (const entry of entries) {
-      const entryDate = parse(entry.date, 'yyyy-MM-dd', new Date());
+    // Sort entries by date in descending order (newest first)
+    const sortedEntries = entries.sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
 
-      if (!prevDate) {
-        if (entry.date === format(new Date(), 'yyyy-MM-dd')) currentStreak = 1;
-        prevDate = entryDate;
-        continue;
-      }
-
-      if (format(entryDate, 'yyyy-MM-dd') === format(prevDate, 'yyyy-MM-dd')) continue;
-
-      const dayDiff = differenceInDays(entryDate, prevDate);
-      if (dayDiff <= 1) {
-        currentStreak++;
-      } else {
-        break;
-      }
-
-      prevDate = entryDate;
+    let streak = 1;
+    let currentDate = parse(sortedEntries[0].date, 'yyyy-MM-dd', new Date());
+    
+    // Check if most recent entry is from today
+    const today = new Date();
+    if (format(currentDate, 'yyyy-MM-dd') !== format(today, 'yyyy-MM-dd')) {
+      return 0;
     }
 
-    return currentStreak;
+    // Look at each consecutive day
+    for (let i = 1; i < sortedEntries.length; i++) {
+      const entryDate = parse(sortedEntries[i].date, 'yyyy-MM-dd', new Date());
+      const dayDiff = differenceInDays(currentDate, entryDate);
+
+      // If exactly 1 day difference, increment streak
+      if (dayDiff === 1) {
+        streak++;
+        currentDate = entryDate;
+      }
+      // If same day, continue checking
+      else if (dayDiff === 0) {
+        continue;
+      }
+      // If gap in days, stop counting
+      else {
+        break;
+      }
+    }
+
+    return streak;
   }
 
   static calculateAverages(entries: any[]) {

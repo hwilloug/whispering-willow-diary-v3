@@ -18,17 +18,10 @@ interface DailyAffirmationProps {
 }
 
 export function DailyAffirmation({ isHidden = false, onHide }: DailyAffirmationProps) {
-  const { data } = trpc.journal.getAll.useQuery();
+  const { data } = trpc.journal.getAll.useQuery({ sortBy: 'date', sortOrder: 'desc', limit: 1 });
 
   const affirmation = useMemo(() => {
-    if (!data) return '';
-
-    // Sort entries by date descending and find first non-empty affirmation
-    const latestAffirmation = data
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .find(entry => entry.affirmation)?.affirmation;
-
-    return latestAffirmation
+    return data?.entries[0]?.affirmation;
   }, [data]);
 
   if (!affirmation || isHidden) return null;

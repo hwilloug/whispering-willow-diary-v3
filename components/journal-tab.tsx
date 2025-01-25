@@ -32,7 +32,7 @@ import { DateRange } from 'react-day-picker';
 import React from 'react';
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
-type Entry = RouterOutput['journal']['getAll'][number];
+type Entry = RouterOutput['journal']['getAll']['entries'][number];
 
 type DayEntry = {
   date: Date;
@@ -45,14 +45,14 @@ interface JournalTabProps {
 }
 
 export function JournalTab({ selectedDates }: JournalTabProps) {
-  const { data: entries } = trpc.journal.getAll.useQuery()
+  const { data } = trpc.journal.getAll.useQuery()
 
   const [searchQuery, setSearchQuery] = useState('');
   const [dayEntries, setDayEntries] = useState<DayEntry[]>([]);
 
   useEffect(() => {
     // Group entries by date if we have entries
-    const entriesByDate = entries?.reduce((acc: { [key: string]: Entry[] }, entry) => {
+    const entriesByDate = data?.entries?.reduce((acc: { [key: string]: Entry[] }, entry) => {
       const date = parse(entry.date, 'yyyy-MM-dd', new Date());
       const dateStr = date.toDateString();
       if (!acc[dateStr]) {
@@ -90,7 +90,7 @@ export function JournalTab({ selectedDates }: JournalTabProps) {
     dayEntries.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     setDayEntries(dayEntries);
-  }, [entries, selectedDates]);
+  }, [data, selectedDates]);
 
   const toggleDay = (date: Date) => {
     setDayEntries((prev) =>

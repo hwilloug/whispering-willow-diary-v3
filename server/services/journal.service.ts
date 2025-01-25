@@ -1,20 +1,47 @@
 import { db } from '@/db';
 import { journalEntries, entryActivities, entryFeelings, entrySymptoms, substanceUse } from '@/db/v3.schema';
-import { eq, and, desc, or } from 'drizzle-orm';
+import { eq, and, desc, or, Column } from 'drizzle-orm';
 import type { DbTransaction } from '@/db/types';
 
 export class JournalService {
-  static async getAllEntries(userId: string) {
-    return await db.query.journalEntries.findMany({
-      where: eq(journalEntries.userId, userId),
-      orderBy: [desc(journalEntries.date)],
-      with: {
-        activities: true,
-        feelings: true,
-        symptoms: true,
-        substances: true
+  static async getAllEntries(userId: string, input: { page?: number, limit?: number, sortBy?: string, sortOrder?: 'asc' | 'desc' } | undefined) {
+    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = input || {};
+    const offset = (page - 1) * limit;
+
+    // Build dynamic orderBy based on sortBy parameter
+    const orderByField = journalEntries[sortBy as keyof typeof journalEntries] as Column;
+    const orderByClause = sortOrder === 'desc' && orderByField ? desc(orderByField) : orderByField;
+
+    const [entries, totalCount] = await Promise.all([
+      db.query.journalEntries.findMany({
+        where: eq(journalEntries.userId, userId),
+        orderBy: [orderByClause],
+        limit: limit,
+        offset: offset,
+        with: {
+          activities: true,
+          feelings: true,
+          symptoms: true,
+          substances: true
+        }
+      }),
+      db.query.journalEntries.findMany({
+        where: eq(journalEntries.userId, userId),
+        columns: {
+          id: true
+        }
+      })
+    ]);
+
+    return {
+      entries,
+      pagination: {
+        total: totalCount.length,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount.length / limit)
       }
-    });
+    };
   }
 
   static async getEntryById(userId: string, id: string) {
