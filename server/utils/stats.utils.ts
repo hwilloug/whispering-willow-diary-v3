@@ -85,7 +85,7 @@ export class StatsCalculator {
 
     return {
       averageMood: moodCount > 0 ? (totalMood / moodCount).toFixed(1) : "0",
-      averageSleep: sleepCount > 0 ? (totalSleep / sleepCount).toFixed(1) : 0,
+      averageSleep: sleepCount > 0 ? (totalSleep / sleepCount).toFixed(1) : "0" ,
       averageExercise: exerciseCount > 0 ? Math.round(totalExercise / exerciseCount) : 0,
       topActivities,
       topFeelings,
