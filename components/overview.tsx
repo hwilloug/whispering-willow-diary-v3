@@ -17,7 +17,6 @@ export function Overview() {
       stroke: '#000000',
       tick: { fill: '#000000' },
       style: { fontSize: '12px' },
-      domain: [0, "auto"],
     },
     tooltip: {
       contentStyle: {
