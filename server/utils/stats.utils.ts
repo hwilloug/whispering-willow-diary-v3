@@ -84,7 +84,7 @@ export class StatsCalculator {
     const substanceUse = new Map([...substanceCounts.entries()].sort((a, b) => b[1] - a[1]));
 
     return {
-      averageMood: moodCount > 0 ? (totalMood / moodCount).toFixed(1) : 0,
+      averageMood: moodCount > 0 ? (totalMood / moodCount).toFixed(1) : "0",
       averageSleep: sleepCount > 0 ? (totalSleep / sleepCount).toFixed(1) : 0,
       averageExercise: exerciseCount > 0 ? Math.round(totalExercise / exerciseCount) : 0,
       topActivities,

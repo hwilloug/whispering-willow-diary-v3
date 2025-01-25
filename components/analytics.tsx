@@ -123,8 +123,8 @@ export function Analytics({ dateRange }: AnalyticsProps) {
     });
   }, [[...dates], [...queries]]);
 
-  const averageMood = stats?.averageMood.toFixed(1) || '-';
-  const averageSleep = stats?.averageSleep.toFixed(1) || '-';
+  const averageMood = stats?.averageMood || '-';
+  const averageSleep = stats?.averageSleep || '-';
 
   // Transform activity data for pie chart
   const activityData = useMemo(() => {
