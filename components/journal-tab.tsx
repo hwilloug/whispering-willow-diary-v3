@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -23,13 +23,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { format, parse, isToday } from 'date-fns';
+import { addDays, format, parse, toDate } from 'date-fns';
 import Link from 'next/link';
 import { trpc } from '@/lib/trpc';
 import type { inferRouterOutputs } from '@trpc/server';
 import { AppRouter } from '@/server';
-import { DateRange } from 'react-day-picker';
 import React from 'react';
+import { Toggle } from './ui/toggle';
+import { Switch } from './ui/switch';
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type Entry = RouterOutput['journal']['getAll']['entries'][number];
@@ -45,70 +46,65 @@ interface JournalTabProps {
 }
 
 export function JournalTab({ selectedDates }: JournalTabProps) {
-  const { data } = trpc.journal.getAll.useQuery()
-
   const [searchQuery, setSearchQuery] = useState('');
-  const [dayEntries, setDayEntries] = useState<DayEntry[]>([]);
 
-  useEffect(() => {
-    // Group entries by date if we have entries
-    const entriesByDate = data?.entries?.reduce((acc: { [key: string]: Entry[] }, entry) => {
-      const date = parse(entry.date, 'yyyy-MM-dd', new Date());
-      const dateStr = date.toDateString();
-      if (!acc[dateStr]) {
-        acc[dateStr] = [];
+  const [page, setPage] = useState(1);
+  const [showEmptyDays, setShowEmptyDays] = useState(false)
+
+  const { data } = trpc.journal.getAll.useQuery({ searchQuery: searchQuery, page, limit: 10 });
+  const groupedEntries = useMemo(() => {
+    if (!data?.entries) return [];
+    
+    const groups = new Map<string, Entry[]>();
+    data.entries.forEach(entry => {
+      const dateStr = format(toDate(entry.date), 'yyyy-MM-dd');
+      if (!groups.has(dateStr)) {
+        groups.set(dateStr, []);
       }
-      acc[dateStr].push(entry);
-      return acc;
-    }, {}) || {};
-
-    if (!selectedDates || !selectedDates.from || !selectedDates.to) {
-      setDayEntries([]);
-      return;
-    }
-
-    // Create array of all dates in range
-    const allDates: Date[] = [];
-    const currentDate = new Date(selectedDates.from.getTime());
-    while (currentDate <= new Date(selectedDates.to.getTime())) {
-      allDates.push(new Date(currentDate));
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    // Create DayEntry array for all dates in range
-    const dayEntries: DayEntry[] = allDates.map(date => {
-      // Set time to midnight for consistent comparison
-      const normalizedDate = new Date(date.setHours(0, 0, 0, 0));
-      return {
-        date: normalizedDate,
-        entries: entriesByDate[normalizedDate.toDateString()] || [],
-        expanded: isToday(normalizedDate)
-      };
+      groups.get(dateStr)?.push(entry);
     });
 
-    // Sort by date descending
-    dayEntries.sort((a, b) => b.date.getTime() - a.date.getTime());
+    let entries = Array.from(groups.entries()).map(([dateStr, entries]) => ({
+      date: parse(dateStr, 'yyyy-MM-dd', new Date()),
+      entries: entries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+      expanded: true
+    }));
 
-    setDayEntries(dayEntries);
-  }, [data, selectedDates]);
+    if (showEmptyDays && entries.length > 0) {
+      // Sort entries by date
+      entries.sort((a, b) => b.date.getTime() - a.date.getTime());
+      
+      // Find date range
+      const latestDate = entries[0].date;
+      const earliestDate = entries[entries.length - 1].date;
+      
+      // Create array of all dates in range
+      const allDates: DayEntry[] = [];
+      let currentDate = earliestDate;
+      
+      while (currentDate <= latestDate) {
+        const existingEntry = entries.find(
+          entry => format(entry.date, 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd')
+        );
+        
+        if (existingEntry) {
+          allDates.push(existingEntry);
+        } else {
+          allDates.push({
+            date: currentDate,
+            entries: [],
+            expanded: true
+          });
+        }
+        
+        currentDate = addDays(currentDate, 1);
+      }
+      
+      return allDates.sort((a, b) => b.date.getTime() - a.date.getTime());
+    }
 
-  const toggleDay = (date: Date) => {
-    setDayEntries((prev) =>
-      prev.map((day) =>
-        day.date.getTime() === date.getTime()
-          ? { ...day, expanded: !day.expanded }
-          : day
-      )
-    );
-  };
-
-  const filteredEntries = dayEntries.filter((day) =>
-    searchQuery === '' || day.entries.some(
-      (entry) =>
-        entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (entry.content?.toLowerCase() || '').includes(searchQuery.toLowerCase())
-    )
-  );
+    return entries;
+  }, [data?.entries, showEmptyDays]);
 
   return (
     <div className="space-y-4">
@@ -122,11 +118,18 @@ export function JournalTab({ selectedDates }: JournalTabProps) {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+        <div className="flex items-center gap-2">
+          <Pagination page={page} setPage={setPage} totalPages={data?.pagination.totalPages || 1} />
+          <Switch
+            checked={showEmptyDays}
+            onCheckedChange={setShowEmptyDays}
+          />
+        </div>
       </div>
 
       <div className="grid gap-4">
-        {filteredEntries.map((day) => (
-          <DayEntries day={day} toggleDay={toggleDay} />
+        {groupedEntries.map((day) => (
+          <DayEntries day={day} toggleDay={() => {}} />
         ))}
       </div>
     </div>
@@ -164,14 +167,6 @@ const DayEntries = ({day, toggleDay}: {day: DayEntry, toggleDay: (date: Date) =>
           {day.entries.map((entry, index) => (
             <EntryCard key={index} entry={entry} day={day} />
           ))}
-          <Link href={`/entry/${format(day.date, 'yyyy-MM-dd')}/new`}>
-            <Button
-              variant="outline"
-              className="w-full bg-primary-dark text-white border-none"
-            >
-              <Plus className="mr-2 h-4 w-4" /> Add Entry for This Day
-            </Button>
-          </Link>
         </CardContent>
         </CollapsibleContent>
       </Collapsible>
@@ -187,9 +182,9 @@ const EntryCard = ({entry, day}: {entry: Entry, day: DayEntry}) => {
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
         <span className="font-medium">{format(entry.createdAt, 'h:mm a')}</span>
-        <span className="text-sm text-muted-foreground">
+        {entry.mood && <span className="text-sm text-muted-foreground">
           Mood: {entry.mood}/10
-        </span>
+        </span>}
       </div>
       <div className="flex gap-2">
         <Link
@@ -235,11 +230,11 @@ const EntryCard = ({entry, day}: {entry: Entry, day: DayEntry}) => {
   )
 }
 
-const Pagination = ({page, setPage}: {page: number, setPage: (page: number) => void}) => {
+const Pagination = ({page, setPage, totalPages}: {page: number, setPage: (page: number) => void, totalPages: number}) => {
   return (
     <div className="space-x-2">
-      <Button>Previous Page</Button>
-      <Button>Next Page</Button>
+      {page > 1 && <Button onClick={() => setPage(page - 1)}>Previous Page</Button>}
+      {page < totalPages && <Button onClick={() => setPage(page + 1)}>Next Page</Button>}
     </div>
   )
 }

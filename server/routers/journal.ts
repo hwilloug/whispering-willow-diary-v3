@@ -12,7 +12,8 @@ export const journalRouter = router({
       page: z.number().optional(),
       limit: z.number().optional(),
       sortBy: z.string().optional(),
-      sortOrder: z.enum(['asc', 'desc']).optional()
+      sortOrder: z.enum(['asc', 'desc']).optional(),
+      searchQuery: z.string().optional()
     }).optional())
     .query(async ({ ctx, input }) => {
       return await JournalService.getAllEntries(ctx.userId, input);

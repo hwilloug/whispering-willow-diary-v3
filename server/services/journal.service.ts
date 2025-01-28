@@ -1,20 +1,23 @@
 import { db } from '@/db';
 import { journalEntries, entryActivities, entryFeelings, entrySymptoms, substanceUse } from '@/db/v3.schema';
-import { eq, and, desc, or, Column } from 'drizzle-orm';
+import { eq, and, desc, or, Column, ilike, sql } from 'drizzle-orm';
 import type { DbTransaction } from '@/db/types';
 
 export class JournalService {
-  static async getAllEntries(userId: string, input: { page?: number, limit?: number, sortBy?: string, sortOrder?: 'asc' | 'desc' } | undefined) {
-    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = input || {};
+  static async getAllEntries(userId: string, input: { page?: number, limit?: number, sortBy?: string, sortOrder?: 'asc' | 'desc', searchQuery?: string, groupBy?: string } | undefined) {
+    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc', searchQuery = '', groupBy = 'date' } = input || {};
     const offset = (page - 1) * limit;
 
     // Build dynamic orderBy based on sortBy parameter
     const orderByField = journalEntries[sortBy as keyof typeof journalEntries] as Column;
     const orderByClause = sortOrder === 'desc' && orderByField ? desc(orderByField) : orderByField;
 
-    const [entries, totalCount] = await Promise.all([
+    const [entries, [{ count }]] = await Promise.all([
       db.query.journalEntries.findMany({
-        where: eq(journalEntries.userId, userId),
+        where: and(
+          eq(journalEntries.userId, userId),
+          ilike(journalEntries.title, `%${searchQuery}%`)
+        ),
         orderBy: [orderByClause],
         limit: limit,
         offset: offset,
@@ -23,23 +26,23 @@ export class JournalService {
           feelings: true,
           symptoms: true,
           substances: true
-        }
+        },
       }),
-      db.query.journalEntries.findMany({
-        where: eq(journalEntries.userId, userId),
-        columns: {
-          id: true
-        }
-      })
+      db.select({ count: sql`count(*)`.mapWith(Number) })
+        .from(journalEntries)
+        .where(and(
+          eq(journalEntries.userId, userId),
+          ilike(journalEntries.title, `%${searchQuery}%`)
+        ))
     ]);
 
     return {
       entries,
       pagination: {
-        total: totalCount.length,
+        total: count,
         page,
         limit,
-        totalPages: Math.ceil(totalCount.length / limit)
+        totalPages: Math.ceil(count / limit)
       }
     };
   }
