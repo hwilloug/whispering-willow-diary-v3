@@ -17,6 +17,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useMemo } from 'react';
 import { DateRange } from 'react-day-picker';
 import { trpc } from '@/lib/trpc';
+import GoalsTab from '@/components/goals-tab';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -100,6 +101,7 @@ export default function DashboardPage() {
               <TabsTrigger value="overview" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Overview</TabsTrigger>
               <TabsTrigger value="analytics" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Analytics</TabsTrigger>
               <TabsTrigger value="journal" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Journal</TabsTrigger>
+              <TabsTrigger value="goals" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Goals</TabsTrigger>
               </div>
             </TabsList>
             {tab === 'analytics' && (
@@ -176,6 +178,9 @@ export default function DashboardPage() {
           </TabsContent>
           <TabsContent value="journal">
             <JournalTab selectedDates={dateRange || {}} />
+          </TabsContent>
+          <TabsContent value="goals">
+            <GoalsTab />
           </TabsContent>
         </Tabs>
         </>
