@@ -178,11 +178,11 @@ export class JournalService {
     await tx.delete(substanceUse).where(eq(substanceUse.entryId, entryId));
   }
 
-  static async getEntriesInDateRange(userId: string, dates: string[]) {
+  static async getEntriesInDateRange(userId: string, startDate: string, endDate: string) {
     return await db.query.journalEntries.findMany({
       where: and(
         eq(journalEntries.userId, userId),
-        or(...dates.map(date => eq(journalEntries.date, date)))
+        sql`CAST(${journalEntries.date} AS DATE) BETWEEN CAST(${startDate} AS DATE) AND CAST(${endDate} AS DATE)`
       ),
       with: {
         activities: true,

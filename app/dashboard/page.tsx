@@ -94,13 +94,24 @@ export default function DashboardPage() {
           </div>
         </div>
         <Tabs value={tab} onValueChange={handleTabChange} className="space-y-4">
-          <TabsList className="flex justify-between items-center">
-            <div className="bg-primary-dark/80 backdrop-blur-sm shadow-xl border border-black">
-            <TabsTrigger value="overview" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Overview</TabsTrigger>
-            <TabsTrigger value="analytics" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Analytics</TabsTrigger>
-            <TabsTrigger value="journal" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Journal</TabsTrigger>
-            </div>
-          </TabsList>
+          <div className="flex justify-between items-center">
+            <TabsList className="flex justify-between items-center">
+              <div className="bg-primary-dark/80 backdrop-blur-sm shadow-xl border border-black">
+              <TabsTrigger value="overview" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Overview</TabsTrigger>
+              <TabsTrigger value="analytics" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Analytics</TabsTrigger>
+              <TabsTrigger value="journal" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Journal</TabsTrigger>
+              </div>
+            </TabsList>
+            {tab === 'analytics' && (
+              <div>
+                <Button className="bg-primary-dark/80 hover:bg-primary-dark/90 text-primary-light" onClick={() => setFilter('week')}>Week</Button>
+                <Button className="bg-primary-dark/80 hover:bg-primary-dark/90 text-primary-light" onClick={() => setFilter('weeks')}>2 Weeks</Button>
+                <Button className="bg-primary-dark/80 hover:bg-primary-dark/90 text-primary-light" onClick={() => setFilter('month')}>Month</Button>
+                <Button className="bg-primary-dark/80 hover:bg-primary-dark/90 text-primary-light" onClick={() => setFilter('months')}>3 Months</Button>
+                <Button className="bg-primary-dark/80 hover:bg-primary-dark/90 text-primary-light" onClick={() => setFilter('year')}>Year</Button>
+              </div>
+            )}
+          </div>
           <TabsContent value="overview" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card className="card-glass shadow-lg">

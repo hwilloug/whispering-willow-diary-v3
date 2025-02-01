@@ -72,27 +72,29 @@ export function Analytics({ filter }: { filter: Filter }) {
     }
   }, [filter]);
 
-  // Fetch data for each date
-  const queries = dates.map(date => 
-    trpc.journal.getByDate.useQuery({ date: format(date, 'yyyy-MM-dd') })
-  ) || [];
+  // Use a single query for all dates instead of multiple queries
+  const { data: entriesData } = trpc.journal.getByDateRange.useQuery({
+    startDate: format(dates[dates.length - 1], 'yyyy-MM-dd'),
+    endDate: format(dates[0], 'yyyy-MM-dd')
+  });
 
-    // Get stats for date range
+  // Get stats for date range
   const { data: stats } = trpc.journal.getStats.useQuery({
-    startDate: format(dates[0], 'yyyy-MM-dd'),
-    endDate: format(dates[dates.length - 1], 'yyyy-MM-dd')
+    startDate: format(dates[dates.length - 1], 'yyyy-MM-dd'),
+    endDate: format(dates[0], 'yyyy-MM-dd')
   });
 
   // Transform data for charts
-  // @ts-ignore
   const weekData = useMemo(() => {
-    if (!dates || !queries) return [];
+    if (!dates || !entriesData) return [];
 
-    return dates.map((date, i) => {
-      const entries = queries[i]?.data || [];
+    return dates.map(date => {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const entries = entriesData.filter(entry => entry.date === dateStr) || [];
       
       // Calculate totals and averages across all entries for the day
       let totalMood = 0;
+      let moodCount = 0;
       let totalSleep = 0;
       let depressionCount = 0;
       let anxietyCount = 0;
@@ -103,6 +105,7 @@ export function Analytics({ filter }: { filter: Filter }) {
 
       entries.forEach(entry => {
         totalMood += entry.mood || 0;
+        moodCount += entry.mood ? 1 : 0;
         totalSleep += Number(entry.sleepHours) || 0;
         depressionCount += getSymptomCount(entry.symptoms, 'Depression');
         anxietyCount += getSymptomCount(entry.symptoms, 'Anxiety'); 
@@ -112,8 +115,7 @@ export function Analytics({ filter }: { filter: Filter }) {
         otherCount += getSymptomCount(entry.symptoms, 'Other');
       });
 
-      const avgMood = entries.length ? totalMood / entries.length : 0;
-
+      const avgMood = moodCount > 0 ? totalMood / moodCount : 0;
       return {
         date: format(date, 'EEE'),
         sleep: totalSleep,
@@ -126,10 +128,12 @@ export function Analytics({ filter }: { filter: Filter }) {
         other: otherCount
       };
     });
-  }, [[...dates], [...queries]]);
+  }, [dates, entriesData]);
 
   const averageMood = stats?.averageMood || '-';
   const averageSleep = stats?.averageSleep || '-';
+
+  console.log(stats)
 
   // Transform activity data for pie chart
   const activityData = useMemo(() => {

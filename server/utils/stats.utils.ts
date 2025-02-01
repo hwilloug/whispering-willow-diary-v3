@@ -6,7 +6,7 @@ export class StatsCalculator {
 
     // Sort entries by date in descending order (newest first)
     const sortedEntries = entries.sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
+      parse(b.date, 'yyyy-MM-dd', new Date()).getTime() - parse(a.date, 'yyyy-MM-dd', new Date()).getTime()
     );
 
     let streak = 1;

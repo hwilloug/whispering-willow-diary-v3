@@ -31,6 +31,12 @@ export const journalRouter = router({
       return await JournalService.getEntriesByDate(ctx.userId, input.date);
     }),
 
+  getByDateRange: protectedProcedure
+    .input(z.object({ startDate: z.string(), endDate: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return await JournalService.getEntriesInDateRange(ctx.userId, input.startDate, input.endDate);
+    }),
+
   create: protectedProcedure
     .input(createJournalEntrySchema)
     .mutation(async ({ ctx, input }) => {
@@ -62,18 +68,8 @@ export const journalRouter = router({
       endDate: z.string()
     }))
     .query(async ({ ctx, input }) => {
-      // Generate date range
-      const dates = [];
-      let currentDate = parse(input.startDate, 'yyyy-MM-dd', new Date());
-      const endDate = parse(input.endDate, 'yyyy-MM-dd', new Date());
-      
-      while (currentDate <= endDate) {
-        dates.push(format(currentDate, 'yyyy-MM-dd'));
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
       // Get entries for the date range
-      const entries = await JournalService.getEntriesInDateRange(ctx.userId, dates);
+      const entries = await JournalService.getEntriesInDateRange(ctx.userId, input.startDate, input.endDate);
       
       // Get all entries for streak calculation
       const allEntries = await JournalService.getAllEntriesForStreak(ctx.userId);
