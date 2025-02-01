@@ -55,10 +55,10 @@ export function Overview() {
       const moodEntries = entries.filter(entry => entry.mood != null);
       data.mood = moodEntries.length > 0 
         ? moodEntries.reduce((sum, entry) => sum + entry.mood!, 0) / moodEntries.length
-        : null;
+        : undefined;
 
       // Sum up sleep hours
-      data.sleep = entries.reduce((sum, entry) => sum + (Number(entry.sleepHours) || 0), 0);
+      data.sleep = entries.reduce((sum, entry) => sum + (Number(entry.sleepHours) || 0), 0) ?? undefined;
 
       // Sum up symptom counts across all entries
       data.depression = entries.reduce((sum, entry) => sum + getSymptomCount(entry.symptoms, 'Depression'), 0);

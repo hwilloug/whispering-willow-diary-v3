@@ -103,12 +103,12 @@ export default function DashboardPage() {
               </div>
             </TabsList>
             {tab === 'analytics' && (
-              <div>
-                <Button className="bg-primary-dark/80 hover:bg-primary-dark/90 text-primary-light" onClick={() => setFilter('week')}>Week</Button>
-                <Button className="bg-primary-dark/80 hover:bg-primary-dark/90 text-primary-light" onClick={() => setFilter('weeks')}>2 Weeks</Button>
-                <Button className="bg-primary-dark/80 hover:bg-primary-dark/90 text-primary-light" onClick={() => setFilter('month')}>Month</Button>
-                <Button className="bg-primary-dark/80 hover:bg-primary-dark/90 text-primary-light" onClick={() => setFilter('months')}>3 Months</Button>
-                <Button className="bg-primary-dark/80 hover:bg-primary-dark/90 text-primary-light" onClick={() => setFilter('year')}>Year</Button>
+              <div className="flex items-center space-x-2">
+                <Button className={`${filter === 'week' ? 'bg-secondary/90 hover:bg-secondary-light/90' : 'bg-primary/80 hover:bg-primary-light/90 hover:text-primary-dark'} text-primary-light`} onClick={() => setFilter('week')}>Week</Button>
+                <Button className={`${filter === 'weeks' ? 'bg-secondary/90 hover:bg-secondary-light/90' : 'bg-primary/80 hover:bg-primary-light/90 hover:text-primary-dark'} text-primary-light`} onClick={() => setFilter('weeks')}>2 Weeks</Button>
+                <Button className={`${filter === 'month' ? 'bg-secondary/90 hover:bg-secondary-light/90' : 'bg-primary/80 hover:bg-primary-light/90 hover:text-primary-dark'} text-primary-light`} onClick={() => setFilter('month')}>Month</Button>
+                <Button className={`${filter === 'months' ? 'bg-secondary/90 hover:bg-secondary-light/90' : 'bg-primary/80 hover:bg-primary-light/90 hover:text-primary-dark'} text-primary-light`} onClick={() => setFilter('months')}>3 Months</Button>
+                <Button className={`${filter === 'year' ? 'bg-secondary/90 hover:bg-secondary-light/90' : 'bg-primary/80 hover:bg-primary-light/90 hover:text-primary-dark'} text-primary-light`} onClick={() => setFilter('year')}>Year</Button>
               </div>
             )}
           </div>

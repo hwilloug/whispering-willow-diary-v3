@@ -104,7 +104,7 @@ export function Analytics({ filter }: { filter: Filter }) {
       let otherCount = 0;
 
       entries.forEach(entry => {
-        totalMood += entry.mood || 0;
+        totalMood += entry.mood ?? 0;
         moodCount += entry.mood ? 1 : 0;
         totalSleep += Number(entry.sleepHours) || 0;
         depressionCount += getSymptomCount(entry.symptoms, 'Depression');
@@ -118,8 +118,8 @@ export function Analytics({ filter }: { filter: Filter }) {
       const avgMood = moodCount > 0 ? totalMood / moodCount : 0;
       return {
         date: format(date, 'EEE'),
-        sleep: totalSleep,
-        mood: avgMood,
+        sleep: totalSleep === 0 ? undefined : totalSleep,
+        mood: avgMood === 0 ? undefined : avgMood,
         depression: depressionCount,
         anxiety: anxietyCount,
         mania: maniaCount,
