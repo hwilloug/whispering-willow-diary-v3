@@ -22,8 +22,8 @@ import {
   Legend,
 } from 'recharts';
 import { trpc } from '@/lib/trpc';
-import { format, parse, eachDayOfInterval } from 'date-fns';
-import { useMemo } from 'react';
+import { format, parse, eachDayOfInterval, addDays, subDays } from 'date-fns';
+import { useMemo, useState } from 'react';
 import { DateRange } from 'react-day-picker';
 
 const COLORS = ['#436228', '#673AB7', '#214C14', '#9575CD', '#E0F0BB', '#4A148C'];
@@ -51,31 +51,36 @@ const chartConfig = {
   },
 };
 
-interface AnalyticsProps {
-  dateRange: { from?: Date, to?: Date };
-}
+type Filter = 'week' | 'weeks' | 'month' | 'months' | 'year'
 
-export function Analytics({ dateRange }: AnalyticsProps) {
+
+export function Analytics({ filter }: { filter: Filter }) {
+
   const dates = useMemo(() => {
-    if (!dateRange?.from || !dateRange?.to) {
-      return [];
+    if (filter === 'week') {
+      return eachDayOfInterval({ start: new Date(), end: subDays(new Date(), 6) });
+    } else if (filter === 'weeks') {
+      return eachDayOfInterval({ start: new Date(), end: subDays(new Date(), 13) });
+    } else if (filter === 'month') {
+      return eachDayOfInterval({ start: new Date(), end: subDays(new Date(), 29) });
+    } else if (filter === 'months') {
+      return eachDayOfInterval({ start: new Date(), end: subDays(new Date(), 89) });
+    } else if (filter === 'year') {
+      return eachDayOfInterval({ start: new Date(), end: subDays(new Date(), 364) });
+    } else {
+      return [new Date()];
     }
-    
-    return eachDayOfInterval({ 
-      start: dateRange.from,
-      end: dateRange.to
-    }).map(date => format(date, 'yyyy-MM-dd'));
-  }, [dateRange.from, dateRange.to]); 
+  }, [filter]);
 
   // Fetch data for each date
   const queries = dates.map(date => 
-    trpc.journal.getByDate.useQuery({ date })
+    trpc.journal.getByDate.useQuery({ date: format(date, 'yyyy-MM-dd') })
   ) || [];
 
     // Get stats for date range
   const { data: stats } = trpc.journal.getStats.useQuery({
-    startDate: format(dateRange.from || new Date(), 'yyyy-MM-dd'),
-    endDate: format(dateRange.to || new Date(), 'yyyy-MM-dd')
+    startDate: format(dates[0], 'yyyy-MM-dd'),
+    endDate: format(dates[dates.length - 1], 'yyyy-MM-dd')
   });
 
   // Transform data for charts
@@ -110,7 +115,7 @@ export function Analytics({ dateRange }: AnalyticsProps) {
       const avgMood = entries.length ? totalMood / entries.length : 0;
 
       return {
-        date: format(parse(date, 'yyyy-MM-dd', new Date()), 'EEE'),
+        date: format(date, 'EEE'),
         sleep: totalSleep,
         mood: avgMood,
         depression: depressionCount,

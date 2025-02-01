@@ -57,7 +57,8 @@ export function JournalTab({ selectedDates }: JournalTabProps) {
     
     const groups = new Map<string, Entry[]>();
     data.entries.forEach(entry => {
-      const dateStr = format(toDate(entry.date), 'yyyy-MM-dd');
+      console.log(entry.date)
+      const dateStr = entry.date
       if (!groups.has(dateStr)) {
         groups.set(dateStr, []);
       }
@@ -132,6 +133,8 @@ export function JournalTab({ selectedDates }: JournalTabProps) {
           <DayEntries day={day} toggleDay={() => {}} />
         ))}
       </div>
+
+      <Pagination page={page} setPage={setPage} totalPages={data?.pagination.totalPages || 1} />
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { RecentEntries } from '@/components/recent-entries';
 import { Analytics } from '@/components/analytics';
 import { JournalTab } from '@/components/journal-tab';
 import { DailyAffirmation } from '@/components/daily-affirmation';
-import { Brain, CalendarDays, Dumbbell, Moon, Plus, Pill, Flame } from 'lucide-react';
+import { Brain, CalendarDays, Dumbbell, Moon, Plus, Pill, Flame, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { format, subDays } from 'date-fns';
 import { HeaderNav } from '@/components/header-nav';
@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab') || 'overview';
   const [isDailyAffirmationHidden, setIsDailyAffirmationHidden] = useState(false);
+  const [filter, setFilter] = useState<'week' | 'weeks' | 'month' | 'months' | 'year'>('week')
 
   const handleTabChange = (value: string) => {
     router.push(`/dashboard?tab=${value}`, { scroll: false });
@@ -33,7 +34,7 @@ export default function DashboardPage() {
     to: new Date(),
   });
 
-  const { data: stats } = trpc.journal.getStats.useQuery({ startDate: format(dateRange?.from || new Date(), 'yyyy-MM-dd'), endDate: format(dateRange?.to || new Date(), 'yyyy-MM-dd') });
+  const { data: stats, isLoading: statsLoading } = trpc.journal.getStats.useQuery({ startDate: format(dateRange?.from || new Date(), 'yyyy-MM-dd'), endDate: format(dateRange?.to || new Date(), 'yyyy-MM-dd') });
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -75,6 +76,12 @@ export default function DashboardPage() {
     <div className="flex min-h-screen flex-col">
       <HeaderNav />
       <div className="flex-1 space-y-4 p-8 pt-6">
+        {statsLoading ? (
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin" color='purple' />
+          </div>
+        ) : (
+          <>
         <DailyAffirmation isHidden={isDailyAffirmationHidden} onHide={() => setIsDailyAffirmationHidden(true)} />
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight text-outline text-primary-light">Dashboard</h2>
@@ -93,8 +100,6 @@ export default function DashboardPage() {
             <TabsTrigger value="analytics" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Analytics</TabsTrigger>
             <TabsTrigger value="journal" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Journal</TabsTrigger>
             </div>
-            {/* @ts-ignore */}
-            { tab !== 'overview' && <CalendarDateRangePicker date={dateRange} setDate={setDateRange} className="bg-primary-light" />}
           </TabsList>
           <TabsContent value="overview" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -156,12 +161,14 @@ export default function DashboardPage() {
             <Overview />
           </TabsContent>
           <TabsContent value="analytics">
-            <Analytics dateRange={dateRange || {}} />
+            <Analytics filter={filter} />
           </TabsContent>
           <TabsContent value="journal">
             <JournalTab selectedDates={dateRange || {}} />
           </TabsContent>
         </Tabs>
+        </>
+        )}
       </div>
     </div>
   );

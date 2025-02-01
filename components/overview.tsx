@@ -154,42 +154,6 @@ export function Overview() {
           </ResponsiveContainer>
         </CardContent>
       </Card>
-
-      <Card className="card-glass col-span-1 md:col-span-2">
-        <CardHeader>
-          <CardTitle>Substance Use</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={weekData}>
-              <XAxis 
-                dataKey="name" 
-                {...chartConfig.xAxis}
-              />
-              <YAxis 
-                {...chartConfig.yAxis}
-                label={{ 
-                  value: 'Usage', 
-                  angle: -90, 
-                  position: 'insideLeft',
-                  style: { fill: '#000000' }
-                }}
-              />
-              <Tooltip {...chartConfig.tooltip} />
-              <Legend {...chartConfig.legend} />
-              {substances.map((substance, index) => (
-                <Bar
-                  key={substance}
-                  dataKey={`substance_${substance}`}
-                  fill={`rgb(var(${index === 0 ? '--primary' : index === 1 ? '--secondary' : '--primary-dark'}))`}
-                  name={substance}
-                  stackId="stack"
-                />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
     </div>
   );
 }
