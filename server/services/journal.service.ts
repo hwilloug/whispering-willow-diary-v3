@@ -89,6 +89,7 @@ export class JournalService {
         sleepHours: input.sleepHours?.toFixed(1),
         exerciseMinutes: input.exerciseMinutes,
         affirmation: input.affirmation,
+        tags: input.tags || [],
       })
       .returning();
 
@@ -106,7 +107,8 @@ export class JournalService {
         sleepHours: input.sleepHours?.toFixed(1),
         exerciseMinutes: input.exerciseMinutes,
         affirmation: input.affirmation,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        tags: input.tags || [],
       })
       .where(and(
         eq(journalEntries.id, id),
@@ -198,5 +200,19 @@ export class JournalService {
       where: eq(journalEntries.userId, userId),
       orderBy: [desc(journalEntries.date)]
     });
+  }
+
+  static async getUserTags(userId: string): Promise<string[]> {
+    const result = await db.query.journalEntries.findMany({
+      where: eq(journalEntries.userId, userId),
+      columns: {
+        tags: true
+      }
+    });
+    
+    const allTags = result.flatMap(entry => entry.tags);
+    const uniqueTags = [...new Set(allTags)];
+    
+    return uniqueTags;
   }
 } 

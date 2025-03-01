@@ -1,3 +1,4 @@
+import { journalEntries } from '@/db/v3.schema';
 import { z } from 'zod';
 
 export const symptomSchema = z.object({
@@ -23,5 +24,9 @@ export const createJournalEntrySchema = z.object({
   activities: z.array(z.string()).optional(),
   feelings: z.array(z.string()).optional(),
   symptoms: z.array(symptomSchema).optional(),
-  substances: z.array(substanceSchema).optional()
+  substances: z.array(substanceSchema).optional(),
+  tags: z.array(z.string()).optional()
 });
+
+export type JournalEntry = typeof journalEntries.$inferSelect;
+export type NewJournalEntry = typeof journalEntries.$inferInsert;

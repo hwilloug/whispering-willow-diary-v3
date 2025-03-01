@@ -21,6 +21,7 @@ import { FeelingSelector } from '@/components/feeling-selector';
 import { trpc } from '@/lib/trpc'
 import { AppRouter } from '@/server';
 import { inferRouterOutputs } from '@trpc/server';
+import TagSelector from "@/components/journal/tag-selector";
 
 interface NewEntryFormProps {
   date: string;
@@ -61,6 +62,8 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
     notes?: string;
   }[]>([]);
   const [exerciseMinutes, setExerciseMinutes] = useState<number | undefined>(undefined);
+  const [tags, setTags] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Initialize with existing entry if available
   useEffect(() => {
@@ -85,6 +88,7 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
         notes: substance.notes || undefined
       })) || []);
       setExerciseMinutes(existingEntry.exerciseMinutes ?? 0);
+      setTags(existingEntry.tags || []);
     }
   }, [existingEntry]);
 
@@ -102,15 +106,16 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!existingEntry) {
-      await createEntry.mutateAsync({
+    setIsLoading(true);
+
+    try {
+      const entryData = {
         date,
-        title,
+        title: title || (content ? content.substring(0, 50) + (content.length > 50 ? "..." : "") : "Untitled Entry"),
         content,
         mood: mood,
-        sleepHours: sleepHours,
-        exerciseMinutes: exerciseMinutes,
+        sleepHours,
+        exerciseMinutes,
         affirmation,
         activities: activities.map(a => a.activity),
         feelings: feelings.map(f => f.feeling),
@@ -123,33 +128,22 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
           substance: d.substance,
           amount: d.amount || '1',
           notes: d.notes || ''
-        }))
-      });
-    } else if (id) {
-      await updateEntry.mutateAsync({
-        id,
-        data: {
-          date,
-          title,
-          content,
-          mood,
-          sleepHours,
-          exerciseMinutes,
-          affirmation,
-          activities: activities.map(a => a.activity),
-          feelings: feelings.map(f => f.feeling),
-          symptoms: symptoms.map(s => ({
-            symptom: s.symptom,
-            severity: s.severity || 1,
-            category: s.category || 'Other'
-          })),
-          substances: drugUse.map(d => ({
-            substance: d.substance,
-            amount: d.amount || '1',
-            notes: d.notes || ''
-          }))
-        }
-      });
+        })),
+        tags
+      };
+
+      if (!existingEntry) {
+        await createEntry.mutateAsync(entryData);
+      } else if (id) {
+        await updateEntry.mutateAsync({
+          id,
+          data: entryData
+        });
+      }
+    } catch (error) {
+      console.error("Error saving entry:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -267,6 +261,13 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
             onSelect={setDrugUse}
           />
 
+          <div>
+            <Label htmlFor="tags">Tags</Label>
+            <div className="mt-1">
+              <TagSelector selectedTags={tags} onChange={setTags} />
+            </div>
+          </div>
+
           <div className="flex justify-end space-x-4">
             <Button
               variant="outline"
@@ -275,7 +276,9 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
             >
               Cancel
             </Button>
-            <Button type="submit">Save Entry</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Saving..." : id === "new" ? "Create Entry" : "Update Entry"}
+            </Button>
           </div>
         </CardContent>
       </Card>

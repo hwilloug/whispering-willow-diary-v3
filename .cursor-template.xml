@@ -1,0 +1,12 @@
+<TEMPLATE>
+<INSTRUCTIONS>
+Use the <CODEBASE> code as a reference, and convert the high-level tasks in the <TASKS> section into a set of detailed, actionable stories.
+Only includes steps an AI coding agent can tackle.
+</INSTRUCTIONS>
+<TASK>
+</TASK>
+<CURSOR_RULES>
+</CURSOR_RULES>
+<CODEBASE>
+</CODEBASE>
+</TEMPLATE>

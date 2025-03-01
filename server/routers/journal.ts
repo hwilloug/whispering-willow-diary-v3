@@ -97,5 +97,30 @@ export const journalRouter = router({
         symptomFrequency: Object.fromEntries(symptomFrequency),
         substanceUse: Object.fromEntries(substanceUse)
       };
-    })
+    }),
+
+  getTags: protectedProcedure
+    .query(async ({ ctx }) => {
+      return await JournalService.getUserTags(ctx.userId);
+    }),
+
+  createEntry: protectedProcedure
+    .input(z.object({
+      content: z.string(),
+      mood: z.number().min(1).max(10).optional(),
+      activities: z.array(z.string()).optional(),
+      symptoms: z.array(z.string()).optional(),
+      tags: z.array(z.string()).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return await db.transaction(async (tx) => {
+        return await JournalService.createEntry(tx, ctx.userId, {
+          date: new Date().toISOString().split('T')[0],
+          title: input.content.substring(0, 50) + (input.content.length > 50 ? '...' : ''),
+          content: input.content,
+          mood: input.mood,
+          tags: input.tags,
+        });
+      });
+    }),
 });

@@ -31,6 +31,7 @@ import { AppRouter } from '@/server';
 import React from 'react';
 import { Toggle } from './ui/toggle';
 import { Switch } from './ui/switch';
+import EntryTags from './journal/entry-tags';
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type Entry = RouterOutput['journal']['getAll']['entries'][number];
@@ -228,6 +229,7 @@ const EntryCard = ({entry, day}: {entry: Entry, day: DayEntry}) => {
           {symptom.symptom}
         </span>
       ))}
+      <EntryTags tags={entry.tags} />
     </div>
   </div>
   )
