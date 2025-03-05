@@ -18,6 +18,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { DateRange } from 'react-day-picker';
 import { trpc } from '@/lib/trpc';
 import GoalsTab from '@/components/goals-tab';
+import { StreakIncentive } from '@/components/streak-incentive';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -123,10 +124,12 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-on-glass">
-                    {stats?.streak || 0} days
+                    {stats?.currentStreak || 0} days
                   </div>
                   <p className="text-xs text-primary-dark/70">
-                    {stats?.streak && stats.streak > 0 ? 'Keep it up!' : 'Start your streak today'}
+                    {stats?.currentStreak && stats.currentStreak > 0 
+                      ? `Longest streak: ${stats.longestStreak} days` 
+                      : 'Start your streak today'}
                   </p>
                 </CardContent>
               </Card>
@@ -171,6 +174,9 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
+            {stats?.currentStreak && stats.currentStreak > 0 && (
+              <StreakIncentive currentStreak={stats.currentStreak} />
+            )}
             <Overview />
           </TabsContent>
           <TabsContent value="analytics">

@@ -5,6 +5,7 @@ import { createJournalEntrySchema } from '../schemas/journal.schema';
 import { JournalService } from '../services/journal.service';
 import { StatsCalculator } from '../utils/stats.utils';
 import { format, parse } from 'date-fns';
+import { StreakService } from '../services/streak.service';
 
 export const journalRouter = router({
   getAll: protectedProcedure
@@ -64,39 +65,24 @@ export const journalRouter = router({
 
   getStats: protectedProcedure
     .input(z.object({
-      startDate: z.string(),
-      endDate: z.string()
-    }))
+      startDate: z.string().optional(),
+      endDate: z.string().optional()
+    }).optional())
     .query(async ({ ctx, input }) => {
-      // Get entries for the date range
-      const entries = await JournalService.getEntriesInDateRange(ctx.userId, input.startDate, input.endDate);
+      // Get existing stats
+      const stats = await JournalService.getStats(ctx.userId, input);
       
-      // Get all entries for streak calculation
-      const allEntries = await JournalService.getAllEntriesForStreak(ctx.userId);
-
-      // Calculate stats
-      const streak = StatsCalculator.calculateStreak(allEntries);
-      const {
-        averageMood,
-        averageSleep,
-        averageExercise,
-        topActivities,
-        topFeelings,
-        symptomFrequency,
-        substanceUse
-      } = StatsCalculator.calculateAverages(entries);
-
-      return {
-        totalEntries: entries.length,
-        averageMood,
-        averageSleep,
-        averageExercise,
-        streak,
-        topActivities: Object.fromEntries(topActivities),
-        topFeelings: Object.fromEntries(topFeelings),
-        symptomFrequency: Object.fromEntries(symptomFrequency),
-        substanceUse: Object.fromEntries(substanceUse)
+      // Get streak information
+      const streakInfo = await StreakService.getUserStreak(ctx.userId);
+            
+      // Return combined stats
+      const result = {
+        ...stats,
+        currentStreak: streakInfo.currentStreak,
+        longestStreak: streakInfo.longestStreak
       };
+            
+      return result;
     }),
 
   getTags: protectedProcedure

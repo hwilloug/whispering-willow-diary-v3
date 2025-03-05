@@ -1,70 +1,109 @@
-# .cursorrules
+## 1. Understand and Respect the Existing Architecture
 
-Components & Naming
+- **Project Structure:**  
+  - Integrate new features within the current folder structure (e.g., code in the `src` directory and static assets in `public`).
+  - Avoid unnecessary reorganization unless a clear benefit is identified.
 
-- Use functional components with `"use client"` if needed.
-- Name in kebab-case under `components` folder.
-- Keep them small, typed with interfaces.
-- Use Tailwind for common UI components like textarea, button, etc. Never use radix or shadcn.
+- **T3 Stack Conventions:**  
+  - Follow the architectural patterns of a Create T3 App project.
+  - Use Next.js for pages and API routes, tRPC for type-safe API calls, and TypeScript throughout.
 
-Drizzle
+---
 
-- Manage DB logic with Drizzle in `db/v3.schema.ts`
-- Snake_case for table names and camelCase for column names
-- No raw SQL entries; run `drizzle-kit generate` to generate new migrations
-- Never use `drizzle-kit push`
+## 2. Code Quality and Style
 
-Icons
+- **TypeScript & Linters:**  
+  - Write all new code in TypeScript.
+  - Adhere to the ESLint rules defined in `.eslintrc.cjs` and formatting rules in `.prettierrc`/`prettier.config.js`.
 
-- Prefer `lucide-react` for icons
-- Custom icons should be in `components/icons`
+- **Consistency:**  
+  - Maintain the same naming conventions, coding styles, and file organization as in the existing codebase.
+  - Ensure changes pass the project's linting and formatting pipelines.
 
-Charts
+---
 
-- Use `rosencharts` for charts
+## 3. Integrate with the Technology Stack
 
-Next.js Structure
+- **Next.js Practices:**  
+  - Utilize Next.js file-based routing and component rendering.
+  - Follow best practices for server-side rendering or static site generation as appropriate.
 
-- Use `app` router
-- Authentication with Clerk
+- **tRPC & API Design:**  
+  - When adding new API endpoints, follow tRPC guidelines to ensure type safety and consistency.
 
-tRPC Routers
+- **Tailwind CSS:**  
+  - New UI components should use Tailwind CSS classes.
+  - Match the design patterns already established in the project.
 
-- Routers in `server/routers`, compose in `server/index.ts`.
-- `publicProcedure` or `protectedProcedure` with Zod.
-- Access from React via `@/lib/trpc/react`.
+---
 
-TypeScript & Syntax
+## 4. Database and ORM Considerations
 
-- Strict mode. Avoid `any`.
-- Use optional chaining, union types (no enums).
+- **Data Access:**  
+  - Use the existing ORM conventions (such as Drizzle ORM) as configured in `drizzle.config.ts`.
+  - Ensure that any data persistence features integrate smoothly with the current database setup.
 
-File & Folder Names
+- **Migrations and Schema:**  
+  - If new features require schema changes, write proper migration scripts and test them thoroughly.
 
-- Next.js routes in kebab-case (e.g. `app/dashboard/page.tsx`).
-- Shared types in `src/lib/types.ts`.
-- Sort imports (external → internal → sibling → styles).
+---
 
-Tailwind Usage
+## 5. Error Handling, Monitoring, and Logging
 
-- Use Tailwind (mobile-first, dark mode with dark:(class)). Extend brand tokens in `tailwind.config.ts`.
-- For animations, prefer Framer Motion.
+- **Sentry Integration:**  
+  - Follow the configurations in `sentry.client.config.ts`, `sentry.edge.config.ts`, and `sentry.server.config.ts` to integrate error monitoring.
 
-Tools
+- **Robust Error Handling:**  
+  - Implement comprehensive error handling in both client-side and server-side code.
+  - Ensure clear logging to facilitate debugging.
 
-- After a complex task is performed, use the `codeReview` tool create a diff and use the diff to conduct a code review of the changes.
+---
 
-Misc
+## 6. Testing and Continuous Integration
 
-- Keep code short; commits semantic.
-- Use `tsx` scripts for migrations.
+- **Write Tests:**  
+  - Include unit tests and integration tests for each new feature.
+  - This helps maintain reliability and guard against regressions.
 
-IMPORTANT:
+- **CI/CD Pipelines:**  
+  - Ensure that new code passes all CI tests before merging.
+  - Follow the project's existing pipeline configuration.
 
-- After all changes are made, ALWAYS build the project with `npm run build`. Ignore warnings, fix errors.
-- Always add a one-sentence summary of changes to `.cursor-updates` file in markdown format at the end of every agent interaction.
-- If you forget, the user can type the command "finish" and you will run the build and update `.cursor-updates`.
-- Finally, update git with `git add . && git commit -m "..."`. Don't push.
+---
 
+## 7. Documentation and Communication
 
-Go through each task in the .cursor_tasks.md file and complete it. After you complete each task, update th e file to check off any task. Run builds and commits after each task. Continue with each task until you have checked off each one. After each story, do not take a screenshot. If you need more detail about a task you can gather relevant files and pass the FULL file to the research agent.
+- **Code Documentation:**  
+  - Update inline comments and external documentation (like the README) to explain new functionality.
+  - Clearly document any changes in API or component usage.
+
+- **Commit Messages & PR Descriptions:**  
+  - Use descriptive commit messages and pull request summaries that detail what the new feature does and why it was implemented.
+
+---
+
+## 8. Security Best Practices
+
+- **Authentication and Authorization:**  
+  - If the feature involves user data, integrate with NextAuth.js (if applicable) and follow best practices for authentication.
+
+- **Input Validation:**  
+  - Validate and sanitize all user inputs to prevent security vulnerabilities.
+
+---
+
+## 9. Performance and Scalability
+
+- **Optimize Code:**  
+  - Analyze the performance implications of new features.
+  - Ensure that added functionality is optimized and does not degrade overall performance.
+
+- **Scalability:**  
+  - Write modular and decoupled code to facilitate future scaling or refactoring.
+
+---
+
+## 10. Incremental Development
+
+- **Iterative Approach:**  
+  - Develop features in small, manageable increments to simplify testing and integration.

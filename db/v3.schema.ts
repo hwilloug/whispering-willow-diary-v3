@@ -24,6 +24,17 @@ export const userSettings = v3.table('user_settings', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Add this new table after the userSettings table
+export const userStreaks = v3.table('user_streaks', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id').notNull(),
+  currentStreak: integer('current_streak').default(0).notNull(),
+  longestStreak: integer('longest_streak').default(0).notNull(),
+  lastEntryDate: date('last_entry_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Journal entries
 export const journalEntries = v3.table('journal_entries', {
   id: uuid('id').defaultRandom().primaryKey(),

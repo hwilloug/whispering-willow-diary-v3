@@ -2,6 +2,9 @@ import { db } from '@/db';
 import { journalEntries, entryActivities, entryFeelings, entrySymptoms, substanceUse } from '@/db/v3.schema';
 import { eq, and, desc, or, Column, ilike, sql } from 'drizzle-orm';
 import type { DbTransaction } from '@/db/types';
+import { StreakService } from './streak.service';
+import { format, subDays } from 'date-fns';
+import { StatsCalculator } from '../utils/stats.utils';
 
 export class JournalService {
   static async getAllEntries(userId: string, input: { page?: number, limit?: number, sortBy?: string, sortOrder?: 'asc' | 'desc', searchQuery?: string, groupBy?: string } | undefined) {
@@ -94,6 +97,7 @@ export class JournalService {
       .returning();
 
     await this.createRelatedRecords(tx, entry.id, input);
+    await StreakService.updateStreak(tx, userId, input.date);
     return entry;
   }
 
@@ -214,5 +218,40 @@ export class JournalService {
     const uniqueTags = [...new Set(allTags)];
     
     return uniqueTags;
+  }
+
+  static async getStats(userId: string, input?: { startDate?: string, endDate?: string }) {
+    const startDate = input?.startDate || format(subDays(new Date(), 30), 'yyyy-MM-dd');
+    const endDate = input?.endDate || format(new Date(), 'yyyy-MM-dd');
+    
+    // Get entries for the date range
+    const entries = await this.getEntriesInDateRange(userId, startDate, endDate);
+    
+    // Get all entries for streak calculation
+    const allEntries = await this.getAllEntriesForStreak(userId);
+
+    // Calculate stats
+    const streak = StatsCalculator.calculateStreak(allEntries);
+    const {
+      averageMood,
+      averageSleep,
+      averageExercise,
+      topActivities,
+      topFeelings,
+      symptomFrequency,
+      substanceUse
+    } = StatsCalculator.calculateAverages(entries);
+
+    return {
+      totalEntries: entries.length,
+      averageMood,
+      averageSleep,
+      averageExercise,
+      streak,
+      topActivities: Object.fromEntries(topActivities),
+      topFeelings: Object.fromEntries(topFeelings),
+      symptomFrequency: Object.fromEntries(symptomFrequency),
+      substanceUse: Object.fromEntries(substanceUse)
+    };
   }
 } 

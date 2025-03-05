@@ -33,3 +33,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# cursor
+.cursor_tasks.md
+fr.sh
+repo_structure.yaml
