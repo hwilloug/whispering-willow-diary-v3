@@ -287,7 +287,7 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
           <div className="mb-4">
             <Label>Add Images</Label>
             <div className="mt-2">
-              <UploadButton<OurFileRouter>
+              <UploadButton<OurFileRouter, void>
                 endpoint="imageUploader"
                 onClientUploadComplete={(res) => {
                   if (res) {
