@@ -22,6 +22,8 @@ import { trpc } from '@/lib/trpc'
 import { AppRouter } from '@/server';
 import { inferRouterOutputs } from '@trpc/server';
 import TagSelector from "@/components/journal/tag-selector";
+import MDEditor from '@uiw/react-md-editor';
+import rehypeSanitize from "rehype-sanitize";
 
 interface NewEntryFormProps {
   date: string;
@@ -232,13 +234,18 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="content">Journal Entry</Label>
-            <Textarea
-              id="content"
-              placeholder="Write your thoughts here..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[200px]"
-            />
+            <div className="min-h-[200px]">
+              <MDEditor
+                value={content || ''}
+                onChange={(val) => setContent(val || '')}
+                preview="edit"
+                previewOptions={{
+                  rehypePlugins: [[rehypeSanitize]],
+                }}
+                height={200}
+                className="bg-background"
+              />
+            </div>
           </div>
 
           <FeelingSelector 

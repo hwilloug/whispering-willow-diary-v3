@@ -32,6 +32,8 @@ import React from 'react';
 import { Toggle } from './ui/toggle';
 import { Switch } from './ui/switch';
 import EntryTags from './journal/entry-tags';
+import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from "rehype-sanitize";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type Entry = RouterOutput['journal']['getAll']['entries'][number];
@@ -204,14 +206,11 @@ const EntryCard = ({entry, day}: {entry: Entry, day: DayEntry}) => {
       </div>
     </div>
     <h4 className="font-semibold">{entry.title}</h4>
-    <p className="text-muted-foreground">
-      {entry.content?.split('\n').map((line, i) => (
-        <React.Fragment key={i}>
-          {line}
-          {i < (entry.content?.split('\n').length || 0) - 1 && <br />}
-        </React.Fragment>
-      ))}
-    </p>
+    <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">
+      <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+        {entry.content || ''}
+      </ReactMarkdown>
+    </div>
     <div className="flex flex-wrap gap-2">
       {entry.activities.map((activity, i) => (
         <span

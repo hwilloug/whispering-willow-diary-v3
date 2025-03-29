@@ -6,6 +6,7 @@ const config: Config = {
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './node_modules/@uiw/react-md-editor/**/*.{js,jsx,ts,tsx}'
   ],
   theme: {
     container: {
@@ -59,9 +60,34 @@ const config: Config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            color: 'inherit',
+            a: {
+              color: 'inherit',
+              textDecoration: 'underline',
+              '&:hover': {
+                color: 'inherit',
+                opacity: 0.8,
+              },
+            },
+            code: {
+              color: 'inherit',
+              background: 'rgba(0,0,0,0.1)',
+              padding: '0.2em 0.4em',
+              borderRadius: '3px',
+            },
+          },
+        },
+      },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    require('@tailwindcss/typography')
+  ],
 };
 
 export default config;

@@ -83,6 +83,67 @@
   input,
   textarea,
   select {
-    @apply bg-white/80 backdrop-blur-sm border-primary-light/30 focus:border-primary-dark/50 focus:ring-primary-dark/30;
+    @apply bg-white/80 border-primary-light/30 focus:border-primary-dark/50 focus:ring-primary-dark/30;
   }
+}
+
+/* Markdown Editor Dark Mode Styles */
+[data-color-mode*='dark'] .wmde-markdown-var,
+[data-color-mode*='dark'] .wmde-markdown {
+  --color-canvas-default: rgb(var(--background));
+  --color-border-default: rgb(var(--border));
+  color: rgb(var(--foreground));
+}
+
+/* Markdown Editor Light Mode Styles */
+.wmde-markdown-var,
+.wmde-markdown {
+  --color-canvas-default: rgb(var(--primary-light));
+  --color-border-default: rgb(var(--primary-light));
+  color: rgb(var(--foreground));
+}
+
+/* Override markdown editor background */
+.w-md-editor {
+  background-color: rgb(var(--primary-light)) !important;
+}
+
+.w-md-editor-text-pre,
+.w-md-editor-text-input,
+.w-md-editor-text {
+  background-color: rgb(var(--primary-light)) !important;
+  color: #000 !important;
+}
+
+.w-md-editor-preview {
+  background-color: rgb(var(--primary-light)) !important;
+  color: #000 !important;
+}
+
+/* Markdown editor toolbar */
+.w-md-editor-toolbar {
+  background-color: rgb(var(--primary-light)) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Markdown editor toolbar items */
+.w-md-editor-toolbar ul li button {
+  color: #000 !important;
+}
+
+/* Code blocks in editor */
+.w-md-editor-text-pre > code,
+.w-md-editor-text-input {
+  color: #000 !important;
+}
+
+/* Additional text visibility fixes */
+.w-md-editor-text-input::placeholder {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+.w-md-editor-text-pre > code,
+.w-md-editor-text-input,
+.w-md-editor-text textarea {
+  -webkit-text-fill-color: #000 !important;
 }
