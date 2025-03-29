@@ -14,7 +14,8 @@ export const settingsRouter = router({
       suggestedFeelings: [],
       suggestedActivities: [],
       suggestedSymptoms: [],
-      suggestedSubstances: []
+      suggestedSubstances: [],
+      categories: ['Depression', 'Anxiety', 'Mania', 'OCD', 'ADHD', 'Other']
     };
   }),
 
@@ -26,7 +27,8 @@ export const settingsRouter = router({
         symptom: z.string(),
         category: z.string()
       })).optional(),
-      suggestedSubstances: z.array(z.string()).optional()
+      suggestedSubstances: z.array(z.string()).optional(),
+      categories: z.array(z.string()).optional()
     }))
     .mutation(async ({ ctx, input }) => {
       const existing = await db.query.userSettings.findFirst({

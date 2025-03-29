@@ -28,6 +28,8 @@ export function SymptomSelector({ selected, onSelect }: SymptomSelectorProps) {
   const [newSymptom, setNewSymptom] = useState('');
   const [newSymptomCategory, setNewSymptomCategory] = useState('');
 
+  const categories = settings?.categories || ['Depression', 'Anxiety', 'Mania', 'OCD', 'ADHD', 'Other'];
+
   const addSymptom = (symptomName: string) => {
     if (symptomName && !selected.some(s => s.symptom === symptomName)) {
       // Check if symptom exists in suggested symptoms
@@ -115,16 +117,19 @@ export function SymptomSelector({ selected, onSelect }: SymptomSelectorProps) {
           onChange={(e) => setNewSymptomCategory(e.target.value)}
         >
           <option value="">Select category</option>
-          <option value="mania">Mania</option>
-          <option value="depression">Depression</option>
-          <option value="anxiety">Anxiety</option>
-          <option value="adhd">ADHD</option>
-          <option value="ocd">OCD</option>
+          {categories.map(category => (
+            <option 
+              key={category} 
+              value={category.toLowerCase()}
+            >
+              {category}
+            </option>
+          ))}
         </select>
         <Button
           type="button"
           variant="secondary"
-          onClick={() => addSymptom(newSymptom, )}
+          onClick={() => addSymptom(newSymptom)}
           className="bg-primary-dark text-white"
         >
           Add

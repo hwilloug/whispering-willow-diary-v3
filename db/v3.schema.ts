@@ -21,6 +21,7 @@ export const userSettings = v3.table('user_settings', {
   suggestedActivities: json('suggested_activities').$type<string[]>().default([]).notNull(),
   suggestedSymptoms: json('suggested_symptoms').$type<{symptom: string, category: string}[]>().default([]).notNull(),
   suggestedSubstances: json('suggested_substances').$type<string[]>().default([]).notNull(),
+  categories: json('categories').$type<string[]>().default(['Depression', 'Anxiety', 'Mania', 'OCD', 'ADHD', 'Other']).notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 

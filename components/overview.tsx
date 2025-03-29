@@ -6,6 +6,20 @@ import { trpc } from '@/lib/trpc';
 import { format, parse, subDays } from 'date-fns';
 import { useMemo } from 'react';
 
+// Add this constant at the top of the file, before the Overview component
+const COLORS = [
+  '#FF6B6B', // Red
+  '#4ECDC4', // Teal
+  '#FFD93D', // Yellow
+  '#95A5A6', // Gray
+  '#6C5CE7', // Purple
+  '#A8E6CF', // Mint
+  '#FF8B94', // Pink
+  '#79BD9A', // Green
+  '#3498DB', // Blue
+  '#F1C40F', // Gold
+];
+
 export function Overview() {
   const chartConfig = {
     xAxis: {
@@ -43,6 +57,19 @@ export function Overview() {
     trpc.journal.getByDate.useQuery({ date })
   );
 
+  const { data: settings } = trpc.settings.get.useQuery();
+  // Get unique categories from settings
+  const categories = useMemo(() => {
+    if (!settings?.suggestedSymptoms) {
+      return ['Depression', 'Anxiety', 'Mania', 'OCD', 'ADHD', 'Other'];
+    }
+    // Get unique categories using Set
+    const uniqueCategories = Array.from(
+      new Set(settings.suggestedSymptoms.map(symptom => symptom.category))
+    );
+    return uniqueCategories.length ? uniqueCategories : ['Depression', 'Anxiety', 'Mania', 'OCD', 'ADHD', 'Other'];
+  }, [settings?.suggestedSymptoms]);
+
   // Transform data for charts
   const weekData = useMemo(() => {
     return dates.map((date, i) => {
@@ -60,25 +87,17 @@ export function Overview() {
       // Sum up sleep hours
       data.sleep = entries.reduce((sum, entry) => sum + (Number(entry.sleepHours) || 0), 0) ?? undefined;
 
-      // Sum up symptom counts across all entries
-      data.depression = entries.reduce((sum, entry) => sum + getSymptomCount(entry.symptoms, 'Depression'), 0);
-      data.anxiety = entries.reduce((sum, entry) => sum + getSymptomCount(entry.symptoms, 'Anxiety'), 0);
-      data.mania = entries.reduce((sum, entry) => sum + getSymptomCount(entry.symptoms, 'Mania'), 0);
-      data.ocd = entries.reduce((sum, entry) => sum + getSymptomCount(entry.symptoms, 'OCD'), 0);
-      data.adhd = entries.reduce((sum, entry) => sum + getSymptomCount(entry.symptoms, 'ADHD'), 0);
-      data.other = entries.reduce((sum, entry) => sum + getSymptomCount(entry.symptoms, 'Other'), 0);
-
-      // Sum up substance amounts across all entries
-      entries.forEach(entry => {
-        entry.substances?.forEach(substance => {
-          const key = `substance_${substance.substance}`;
-          data[key] = (data[key] || 0) + (substance.amount || 0);
-        });
+      // Sum up symptom counts for each category
+      categories.forEach((category: string) => {
+        data[category.toLowerCase()] = entries.reduce(
+          (sum, entry) => sum + getSymptomCount(entry.symptoms, category), 
+          0
+        );
       });
 
       return data;
     });
-  }, [dates, queries]);
+  }, [dates, queries, categories]);
 
   // Get unique substances across all entries
   const substances = useMemo(() => {
@@ -118,13 +137,17 @@ export function Overview() {
               />
               <Tooltip {...chartConfig.tooltip} />
               <Legend {...chartConfig.legend} />
-              {/* Mental Health Indicator Bars with updated colors */}
-              <Bar yAxisId="right" dataKey="depression" stackId="a" fill="#FF6B6B" name="Depression" />
-              <Bar yAxisId="right" dataKey="anxiety" stackId="a" fill="#4ECDC4" name="Anxiety" />
-              <Bar yAxisId="right" dataKey="mania" stackId="a" fill="#FFD93D" name="Mania" />
-              <Bar yAxisId="right" dataKey="ocd" stackId="a" fill="#95A5A6" name="OCD" />
-              <Bar yAxisId="right" dataKey="adhd" stackId="a" fill="#6C5CE7" name="ADHD" />
-              <Bar yAxisId="right" dataKey="other" stackId="a" fill="#A8E6CF" name="Other" />
+              {/* Dynamic category bars */}
+              {categories.map((category: string, index: number) => (
+                <Bar
+                  key={category}
+                  yAxisId="right"
+                  dataKey={category.toLowerCase()}
+                  stackId="a"
+                  fill={COLORS[index % COLORS.length]}
+                  name={category}
+                />
+              ))}
               {/* Mood and Sleep Lines */}
               <Line
                 yAxisId="left"

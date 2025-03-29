@@ -16,6 +16,7 @@ export default function SettingsPage() {
   const [symptoms, setSymptoms] = useState<Symptom[]>([]);
   const [substances, setSubstances] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+  const [categories, setCategories] = useState<string[]>([]);
 
   const { data: settings, isLoading } = trpc.settings.get.useQuery();
   const updateSettings = trpc.settings.update.useMutation();
@@ -26,6 +27,7 @@ export default function SettingsPage() {
       setActivities(settings.suggestedActivities);
       setSymptoms(settings.suggestedSymptoms);
       setSubstances(settings.suggestedSubstances);
+      setCategories(settings.categories || ['Depression', 'Anxiety', 'Mania', 'OCD', 'ADHD', 'Other']);
     }
   }, [settings]);
 
@@ -90,6 +92,28 @@ export default function SettingsPage() {
     });
   };
 
+  const handleCategoriesUpdate = (newCategories: string[]) => {
+    // Ensure 'Other' category is always present
+    if (!newCategories.includes('Other')) {
+      newCategories.push('Other');
+    }
+    
+    setCategories(newCategories);
+    
+    // Update symptoms to use 'Other' category for any symptoms with removed categories
+    const updatedSymptoms = symptoms.map(symptom => ({
+      ...symptom,
+      category: newCategories.includes(symptom.category) ? symptom.category : 'Other'
+    }));
+    
+    setSymptoms(updatedSymptoms);
+    
+    updateSettings.mutate({
+      categories: newCategories,
+      suggestedSymptoms: updatedSymptoms
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -125,6 +149,13 @@ export default function SettingsPage() {
         
         <div className="grid gap-6">
           <SuggestionList
+            title="Mental Health Categories"
+            description="Customize the categories you want to track (Other category cannot be removed)"
+            items={categories}
+            onUpdate={handleCategoriesUpdate}
+          />
+          
+          <SuggestionList
             title="Feelings"
             description="Customize your suggested feelings for journal entries"
             items={feelings}
@@ -143,7 +174,7 @@ export default function SettingsPage() {
             description="Customize your suggested symptoms for mental health tracking"
             items={symptomsDisplay}
             onUpdate={handleSymptomsUpdate}
-            categories={['Mania', 'Depression', 'ADHD', 'OCD', 'Anxiety', 'Other']}
+            categories={categories}
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
             onAdd={handleSymptomAdd}
