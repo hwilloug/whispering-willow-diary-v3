@@ -285,7 +285,18 @@ export function Analytics({ filter }: { filter: Filter }) {
                 stroke="rgb(var(--primary))"
                 strokeWidth={2}
                 name="Mood"
-                dot={false}
+                dot={{
+                  stroke: 'rgb(var(--primary))',
+                  strokeWidth: 1,
+                  fill: 'rgb(var(--primary))',
+                  r: 3
+                }}
+                activeDot={{
+                  stroke: 'rgb(var(--primary))',
+                  strokeWidth: 2,
+                  fill: 'rgb(var(--primary))',
+                  r: 5
+                }}
               />
               <Line
                 yAxisId="right"
@@ -294,7 +305,18 @@ export function Analytics({ filter }: { filter: Filter }) {
                 stroke="rgb(var(--secondary))"
                 strokeWidth={2}
                 name="Sleep Hours"
-                dot={false}
+                dot={{
+                  stroke: 'rgb(var(--secondary))',
+                  strokeWidth: 1,
+                  fill: 'rgb(var(--secondary))',
+                  r: 3
+                }}
+                activeDot={{
+                  stroke: 'rgb(var(--secondary))',
+                  strokeWidth: 2,
+                  fill: 'rgb(var(--secondary))',
+                  r: 5
+                }}
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -324,6 +346,12 @@ export function Analytics({ filter }: { filter: Filter }) {
               />
               <Tooltip {...chartConfig.tooltip} />
               <Legend {...chartConfig.legend} />
+              <Bar
+                yAxisId="right"
+                dataKey="exercise"
+                fill="rgb(var(--secondary))"
+                name="Exercise Minutes"
+              />
               <Line
                 yAxisId="left"
                 type="monotone"
@@ -331,13 +359,18 @@ export function Analytics({ filter }: { filter: Filter }) {
                 stroke="rgb(var(--primary))"
                 strokeWidth={2}
                 name="Mood"
-                dot={false}
-              />
-              <Bar
-                yAxisId="right"
-                dataKey="exercise"
-                fill="rgb(var(--secondary))"
-                name="Exercise Minutes"
+                dot={{
+                  stroke: 'rgb(var(--primary))',
+                  strokeWidth: 1,
+                  fill: 'rgb(var(--primary))',
+                  r: 3
+                }}
+                activeDot={{
+                  stroke: 'rgb(var(--primary))',
+                  strokeWidth: 2,
+                  fill: 'rgb(var(--primary))',
+                  r: 5
+                }}
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -362,6 +395,18 @@ export function Analytics({ filter }: { filter: Filter }) {
                 stroke="rgb(var(--primary))" 
                 strokeWidth={2}
                 name="Mood"
+                dot={{
+                  stroke: 'rgb(var(--primary))',
+                  strokeWidth: 1,
+                  fill: 'rgb(var(--primary))',
+                  r: 3
+                }}
+                activeDot={{
+                  stroke: 'rgb(var(--primary))',
+                  strokeWidth: 2,
+                  fill: 'rgb(var(--primary))',
+                  r: 5
+                }}
               />
               <Bar
                 dataKey="depression" 
