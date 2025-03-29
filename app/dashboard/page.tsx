@@ -19,13 +19,16 @@ import { DateRange } from 'react-day-picker';
 import { trpc } from '@/lib/trpc';
 import GoalsTab from '@/components/goals-tab';
 import { StreakIncentive } from '@/components/streak-incentive';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+type Filter = 'week' | 'weeks' | 'month' | 'months' | 'year' | 'custom';
 
 export default function DashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab') || 'overview';
   const [isDailyAffirmationHidden, setIsDailyAffirmationHidden] = useState(false);
-  const [filter, setFilter] = useState<'week' | 'weeks' | 'month' | 'months' | 'year'>('week')
+  const [filter, setFilter] = useState<Filter>('week');
 
   const handleTabChange = (value: string) => {
     router.push(`/dashboard?tab=${value}`, { scroll: false });
@@ -106,13 +109,22 @@ export default function DashboardPage() {
               </div>
             </TabsList>
             {tab === 'analytics' && (
-              <div className="flex items-center space-x-2">
-                <Button className={`${filter === 'week' ? 'bg-secondary/90 hover:bg-secondary-light/90' : 'bg-primary/80 hover:bg-primary-light/90 hover:text-primary-dark'} text-primary-light`} onClick={() => setFilter('week')}>Week</Button>
-                <Button className={`${filter === 'weeks' ? 'bg-secondary/90 hover:bg-secondary-light/90' : 'bg-primary/80 hover:bg-primary-light/90 hover:text-primary-dark'} text-primary-light`} onClick={() => setFilter('weeks')}>2 Weeks</Button>
-                <Button className={`${filter === 'month' ? 'bg-secondary/90 hover:bg-secondary-light/90' : 'bg-primary/80 hover:bg-primary-light/90 hover:text-primary-dark'} text-primary-light`} onClick={() => setFilter('month')}>Month</Button>
-                <Button className={`${filter === 'months' ? 'bg-secondary/90 hover:bg-secondary-light/90' : 'bg-primary/80 hover:bg-primary-light/90 hover:text-primary-dark'} text-primary-light`} onClick={() => setFilter('months')}>3 Months</Button>
-                <Button className={`${filter === 'year' ? 'bg-secondary/90 hover:bg-secondary-light/90' : 'bg-primary/80 hover:bg-primary-light/90 hover:text-primary-dark'} text-primary-light`} onClick={() => setFilter('year')}>Year</Button>
-              </div>
+              <Select
+                value={filter}
+                onValueChange={(value) => setFilter(value as Filter)}
+              >
+                <SelectTrigger className="w-[180px] bg-primary-dark/80 text-primary-light border-black hover:bg-primary-dark/90">
+                  <SelectValue placeholder="Select time range" />
+                </SelectTrigger>
+                <SelectContent className="bg-primary-dark/95 text-primary-light border-black">
+                  <SelectItem value="week" className="hover:bg-primary-light/10">Last Week</SelectItem>
+                  <SelectItem value="weeks" className="hover:bg-primary-light/10">Last 2 Weeks</SelectItem>
+                  <SelectItem value="month" className="hover:bg-primary-light/10">Last Month</SelectItem>
+                  <SelectItem value="months" className="hover:bg-primary-light/10">Last 3 Months</SelectItem>
+                  <SelectItem value="year" className="hover:bg-primary-light/10">Last Year</SelectItem>
+                  <SelectItem value="custom" className="hover:bg-primary-light/10">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
             )}
           </div>
           <TabsContent value="overview" className="space-y-4">

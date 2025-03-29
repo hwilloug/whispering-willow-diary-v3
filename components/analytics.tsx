@@ -20,11 +20,18 @@ import {
   YAxis,
   Tooltip,
   Legend,
+  ScatterChart,
+  Scatter,
+  ZAxis,
+  ComposedChart,
 } from 'recharts';
 import { trpc } from '@/lib/trpc';
 import { format, parse, eachDayOfInterval, addDays, subDays } from 'date-fns';
 import { useMemo, useState } from 'react';
 import { DateRange } from 'react-day-picker';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
 
 const COLORS = ['#436228', '#673AB7', '#214C14', '#9575CD', '#E0F0BB', '#4A148C'];
 
@@ -51,10 +58,10 @@ const chartConfig = {
   },
 };
 
-type Filter = 'week' | 'weeks' | 'month' | 'months' | 'year'
-
+type Filter = 'week' | 'weeks' | 'month' | 'months' | 'year' | 'custom';
 
 export function Analytics({ filter }: { filter: Filter }) {
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const dates = useMemo(() => {
     if (filter === 'week') {
@@ -67,10 +74,12 @@ export function Analytics({ filter }: { filter: Filter }) {
       return eachDayOfInterval({ start: new Date(), end: subDays(new Date(), 89) });
     } else if (filter === 'year') {
       return eachDayOfInterval({ start: new Date(), end: subDays(new Date(), 364) });
+    } else if (filter === 'custom' && dateRange?.from && dateRange?.to) {
+      return eachDayOfInterval({ start: dateRange.to, end: dateRange.from });
     } else {
       return [new Date()];
     }
-  }, [filter]);
+  }, [filter, dateRange]);
 
   // Use a single query for all dates instead of multiple queries
   const { data: entriesData } = trpc.journal.getByDateRange.useQuery({
@@ -144,8 +153,85 @@ export function Analytics({ filter }: { filter: Filter }) {
     }));
   }, [stats?.topActivities]);
 
+  // Add export functionality
+  const exportData = () => {
+    if (!entriesData) return;
+
+    // Create CSV content
+    const csvContent = [
+      // Headers
+      ['Date', 'Mood', 'Sleep', 'Depression', 'Anxiety', 'Mania', 'OCD', 'ADHD', 'Other'].join(','),
+      // Data rows
+      ...weekData.map(day => [
+        day.date,
+        day.mood || '',
+        day.sleep || '',
+        day.depression,
+        day.anxiety,
+        day.mania,
+        day.ocd,
+        day.adhd,
+        day.other
+      ].join(','))
+    ].join('\n');
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `mental-health-data-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
+  };
+
+  // Add correlation data transformations
+  const correlationData = useMemo(() => {
+    if (!entriesData) return [];
+    
+    const dataByDate = new Map();
+    
+    entriesData.forEach(entry => {
+      const date = new Date(entry.date);
+      const dateStr = format(date, 'MMM dd');
+      
+      if (!dataByDate.has(dateStr)) {
+        dataByDate.set(dateStr, {
+          mood: entry.mood || 0,
+          sleep: entry.sleepHours ? Number(entry.sleepHours) : undefined,
+          exercise: entry.exerciseMinutes || 0,
+          symptoms: entry.symptoms?.length || 0,
+          date: dateStr,
+          dateObj: date,
+          depression: entry.symptoms?.filter(s => s.category === 'Depression').length || 0,
+          anxiety: entry.symptoms?.filter(s => s.category === 'Anxiety').length || 0,
+          mania: entry.symptoms?.filter(s => s.category === 'Mania').length || 0,
+        });
+      }
+    });
+
+    // Convert to array and sort by date (oldest to newest)
+    return Array.from(dataByDate.values())
+      .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+  }, [entriesData]);
+
   return (
     <div className="grid gap-4">
+      <div className="flex justify-between items-center">
+        {filter === 'custom' && (
+          <DatePickerWithRange 
+            date={dateRange}
+            onDateChange={setDateRange}
+          />
+        )}
+        <Button 
+          variant="outline" 
+          className="ml-auto bg-primary-dark/80 text-primary-light border-black hover:bg-primary-dark/90 backdrop-blur-sm shadow-lg"
+          onClick={exportData}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Export Data
+        </Button>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="card-glass shadow-lg">
           <CardHeader>
@@ -170,138 +256,132 @@ export function Analytics({ filter }: { filter: Filter }) {
 
       <Card className="card-glass shadow-lg">
         <CardHeader>
-          <CardTitle>Mental Health Indicators</CardTitle>
-          <CardDescription>Weekly tracking of mental health conditions</CardDescription>
+          <CardTitle>Mood vs Sleep Correlation</CardTitle>
+          <CardDescription>How sleep duration affects mood</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={weekData}>
+            <ComposedChart data={correlationData}>
               <XAxis dataKey="date" {...chartConfig.xAxis} />
-              <YAxis {...chartConfig.yAxis} />
+              <YAxis 
+                yAxisId="left"
+                {...chartConfig.yAxis}
+                domain={[0, 10]}
+                label={{ value: 'Mood', angle: -90, position: 'insideLeft' }}
+              />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                {...chartConfig.yAxis}
+                domain={[0, 12]}
+                label={{ value: 'Sleep (hours)', angle: 90, position: 'insideRight' }}
+              />
               <Tooltip {...chartConfig.tooltip} />
               <Legend {...chartConfig.legend} />
               <Line
+                yAxisId="left"
                 type="monotone"
-                dataKey="depression"
+                dataKey="mood"
                 stroke="rgb(var(--primary))"
                 strokeWidth={2}
-                name="Depression"
+                name="Mood"
+                dot={false}
               />
               <Line
+                yAxisId="right"
                 type="monotone"
-                dataKey="anxiety"
+                dataKey="sleep"
                 stroke="rgb(var(--secondary))"
                 strokeWidth={2}
-                name="Anxiety"
+                name="Sleep Hours"
+                dot={false}
               />
-              <Line
-                type="monotone"
-                dataKey="mania"
-                stroke="rgb(var(--primary-dark))"
-                strokeWidth={2}
-                name="Mania"
-              />
-              <Line
-                type="monotone"
-                dataKey="ocd"
-                stroke="#673AB7"
-                strokeWidth={2}
-                name="OCD"
-              />
-              <Line
-                type="monotone"
-                dataKey="adhd"
-                stroke="#9575CD"
-                strokeWidth={2}
-                name="ADHD"
-              />
-            </LineChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="card-glass shadow-lg">
-          <CardHeader>
-            <CardTitle>Mood vs Sleep Correlation</CardTitle>
-            <CardDescription>Impact of sleep on mood levels</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={weekData}>
-                <XAxis dataKey="date" {...chartConfig.xAxis} />
-                <YAxis {...chartConfig.yAxis} />
-                <Tooltip {...chartConfig.tooltip} />
-                <Legend {...chartConfig.legend} />
-                <Line
-                  type="monotone"
-                  dataKey="mood"
-                  stroke="rgb(var(--primary))"
-                  strokeWidth={2}
-                  name="Mood"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="sleep"
-                  stroke="rgb(var(--secondary))"
-                  strokeWidth={2}
-                  name="Sleep Hours"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="card-glass shadow-lg">
-          <CardHeader>
-            <CardTitle>Activity Distribution</CardTitle>
-            <CardDescription>Number of times an entry included each activity</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={activityData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name} (${value})`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  nameKey="name"
-                >
-                  {activityData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip {...chartConfig.tooltip} />
-                <Legend {...chartConfig.legend} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
       <Card className="card-glass shadow-lg">
         <CardHeader>
-          <CardTitle>Weekly Mental Health Summary</CardTitle>
-          <CardDescription>Combined view of all mental health indicators</CardDescription>
+          <CardTitle>Exercise Impact Analysis</CardTitle>
+          <CardDescription>Relationship between exercise and mental health</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={weekData}>
+            <ComposedChart data={correlationData}>
+              <XAxis dataKey="date" {...chartConfig.xAxis} />
+              <YAxis 
+                yAxisId="left"
+                {...chartConfig.yAxis}
+                domain={[0, 10]}
+                label={{ value: 'Mood', angle: -90, position: 'insideLeft' }}
+              />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                {...chartConfig.yAxis}
+                label={{ value: 'Exercise (min)', angle: 90, position: 'insideRight' }}
+              />
+              <Tooltip {...chartConfig.tooltip} />
+              <Legend {...chartConfig.legend} />
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="mood"
+                stroke="rgb(var(--primary))"
+                strokeWidth={2}
+                name="Mood"
+                dot={false}
+              />
+              <Bar
+                yAxisId="right"
+                dataKey="exercise"
+                fill="rgb(var(--secondary))"
+                name="Exercise Minutes"
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <Card className="card-glass shadow-lg">
+        <CardHeader>
+          <CardTitle>Symptom Relationships</CardTitle>
+          <CardDescription>How different symptoms relate to mood and each other</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={correlationData}>
               <XAxis dataKey="date" {...chartConfig.xAxis} />
               <YAxis {...chartConfig.yAxis} />
               <Tooltip {...chartConfig.tooltip} />
               <Legend {...chartConfig.legend} />
-              <Bar dataKey="depression" stackId="a" fill="rgb(var(--primary))" name="Depression" />
-              <Bar dataKey="anxiety" stackId="a" fill="rgb(var(--secondary))" name="Anxiety" />
-              <Bar dataKey="mania" stackId="a" fill="rgb(var(--primary-dark))" name="Mania" />
-              <Bar dataKey="ocd" stackId="a" fill="#673AB7" name="OCD" />
-              <Bar dataKey="adhd" stackId="a" fill="#9575CD" name="ADHD" />
-              <Bar dataKey="other" stackId="a" fill="#E0F0BB" name="Other" />
-            </BarChart>
+              <Line 
+                type="monotone" 
+                dataKey="mood" 
+                stroke="rgb(var(--primary))" 
+                strokeWidth={2}
+                name="Mood"
+              />
+              <Bar
+                dataKey="depression" 
+                fill="#436228" 
+                name="Depression Symptoms"
+                stackId="symptoms"
+              />
+              <Bar
+                dataKey="anxiety" 
+                fill="#673AB7" 
+                name="Anxiety Symptoms"
+                stackId="symptoms"
+              />
+              <Bar
+                dataKey="mania" 
+                fill="#214C14" 
+                name="Mania Symptoms"
+                stackId="symptoms"
+              />
+            </ComposedChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
