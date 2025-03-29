@@ -128,67 +128,71 @@ export default function DashboardPage() {
             )}
           </div>
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="card-glass shadow-lg">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-on-glass">Entry Streak</CardTitle>
-                  <Flame className="h-4 w-4 text-primary-dark/70" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-on-glass">
-                    {stats?.currentStreak || 0} days
-                  </div>
-                  <p className="text-xs text-primary-dark/70">
-                    {stats?.currentStreak && stats.currentStreak > 0 
-                      ? `Longest streak: ${stats.longestStreak} days` 
-                      : 'Start your streak today'}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="card-glass shadow-lg">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-on-glass">Sleep</CardTitle>
-                  <Moon className="h-4 w-4 text-primary-dark/70" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-on-glass">{todayStats.sleep || '-'}h</div>
-                  <p className="text-xs text-primary-dark/70">
-                    {sleepDiff > 0 ? '+' : ''}{sleepDiff}h from yesterday
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="card-glass shadow-lg">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-on-glass">Exercise</CardTitle>
-                  <Dumbbell className="h-4 w-4 text-primary-dark/70" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-on-glass">{todayStats.exercise || '-'}min</div>
-                  <p className="text-xs text-primary-dark/70">
-                    {exerciseDiff > 0 ? '+' : ''}{exerciseDiff}min from yesterday
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="card-glass shadow-lg">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-on-glass">Mood</CardTitle>
-                  <Brain className="h-4 w-4 text-primary-dark/70" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-on-glass">{todayStats.mood ? `${todayStats.mood}/10` : '-'}</div>
-                  <p className="text-xs text-primary-dark/70">
-                    {todayStats.mood && yesterdayStats.mood && todayStats.mood > yesterdayStats.mood 
-                      ? 'Improved from yesterday'
-                      : todayStats.mood && yesterdayStats.mood && todayStats.mood < yesterdayStats.mood
-                      ? 'Declined from yesterday'
-                      : 'Same as yesterday'}
-                  </p>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                <Card className="card-glass shadow-lg">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-on-glass">Entry Streak</CardTitle>
+                    <Flame className="h-4 w-4 text-primary-dark/70" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-on-glass">
+                      {stats?.currentStreak || 0} days
+                    </div>
+                    <p className="text-xs text-primary-dark/70">
+                      {stats?.currentStreak && stats.currentStreak > 0 
+                        ? `Longest streak: ${stats.longestStreak} days` 
+                        : 'Start your streak today'}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="card-glass shadow-lg">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-on-glass">Sleep</CardTitle>
+                    <Moon className="h-4 w-4 text-primary-dark/70" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-on-glass">{todayStats.sleep || '-'}h</div>
+                    <p className="text-xs text-primary-dark/70">
+                      {sleepDiff > 0 ? '+' : ''}{sleepDiff}h from yesterday
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="card-glass shadow-lg">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-on-glass">Exercise</CardTitle>
+                    <Dumbbell className="h-4 w-4 text-primary-dark/70" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-on-glass">{todayStats.exercise || '-'}min</div>
+                    <p className="text-xs text-primary-dark/70">
+                      {exerciseDiff > 0 ? '+' : ''}{exerciseDiff}min from yesterday
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="card-glass shadow-lg">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-on-glass">Mood</CardTitle>
+                    <Brain className="h-4 w-4 text-primary-dark/70" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-on-glass">{todayStats.mood ? `${todayStats.mood}/10` : '-'}</div>
+                    <p className="text-xs text-primary-dark/70">
+                      {todayStats.mood && yesterdayStats.mood && todayStats.mood > yesterdayStats.mood 
+                        ? 'Improved from yesterday'
+                        : todayStats.mood && yesterdayStats.mood && todayStats.mood < yesterdayStats.mood
+                        ? 'Declined from yesterday'
+                        : 'Same as yesterday'}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+              {stats?.currentStreak && stats.currentStreak > 0 && (
+                <div className="h-full">
+                  <StreakIncentive currentStreak={stats.currentStreak} />
+                </div>
+              )}
             </div>
-            {stats?.currentStreak && stats.currentStreak > 0 && (
-              <StreakIncentive currentStreak={stats.currentStreak} />
-            )}
             <Overview />
           </TabsContent>
           <TabsContent value="analytics">
