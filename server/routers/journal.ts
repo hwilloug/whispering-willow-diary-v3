@@ -6,6 +6,9 @@ import { JournalService } from '../services/journal.service';
 import { StatsCalculator } from '../utils/stats.utils';
 import { format, parse } from 'date-fns';
 import { StreakService } from '../services/streak.service';
+import { and, eq } from 'drizzle-orm';
+import { utapi } from '@/app/api/uploadthing/core';
+import { journalEntries } from '@/db/v3.schema';
 
 export const journalRouter = router({
   getAll: protectedProcedure
@@ -116,5 +119,45 @@ export const journalRouter = router({
           tags: input.tags,
         });
       });
+    }),
+
+  deleteImage: protectedProcedure
+    .input(z.object({
+      imageUrl: z.string(),
+      entryId: z.string().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // If there's an entry ID, remove the image from the entry first
+      if (input.entryId) {
+        const entry = await db.query.journalEntries.findFirst({
+          where: and(
+            eq(journalEntries.id, input.entryId),
+            eq(journalEntries.userId, ctx.userId)
+          )
+        });
+
+        if (entry) {
+          await db
+            .update(journalEntries)
+            .set({
+              images: (entry.images as string[]).filter(img => img !== input.imageUrl),
+              updatedAt: new Date()
+            })
+            .where(eq(journalEntries.id, input.entryId));
+        }
+      }
+
+      // Extract the file key from the URL
+      const fileKey = input.imageUrl.split('/').pop();
+      if (!fileKey) throw new Error("Invalid image URL");
+
+      // Delete from uploadthing
+      try {
+        await utapi.deleteFiles(fileKey);
+      } catch (error) {
+        console.error("Error deleting file from uploadthing:", error);
+      }
+
+      return { success: true };
     }),
 });

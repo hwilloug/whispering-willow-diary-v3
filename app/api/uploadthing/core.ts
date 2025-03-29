@@ -1,9 +1,10 @@
-import { createUploadthing } from "uploadthing/next";
+import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { auth } from "@clerk/nextjs/server";
 import { createRouteHandler } from "uploadthing/next";
-import { FileRouter } from "uploadthing/server";
+import { UTApi } from "uploadthing/server";
 
 const f = createUploadthing();
+const utapi = new UTApi();
 
 export const ourFileRouter = {
   imageUploader: f({
@@ -26,4 +27,7 @@ export type OurFileRouter = typeof ourFileRouter;
 // Create and export the route handlers
 export const { GET, POST } = createRouteHandler({
   router: ourFileRouter,
-}); 
+});
+
+// Export utapi for use in other server files
+export { utapi }; 

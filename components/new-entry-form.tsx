@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { ActivitySelector } from '@/components/activity-selector';
@@ -25,7 +24,9 @@ import TagSelector from "@/components/journal/tag-selector";
 import MDEditor from '@uiw/react-md-editor';
 import rehypeSanitize from "rehype-sanitize";
 import { UploadButton } from "@uploadthing/react";
-import { OurFileRouter } from "@/server/uploadthing";
+import { OurFileRouter } from "@/app/api/uploadthing/core";
+import { Image, Trash2 } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 interface NewEntryFormProps {
   date: string;
@@ -33,6 +34,7 @@ interface NewEntryFormProps {
 }
 export function NewEntryForm({ date, id }: NewEntryFormProps) {
   const router = useRouter();
+  const { toast } = useToast();
 
   let existingEntry: inferRouterOutputs<AppRouter>['journal']['getById'] | null = null;
   if (id) {
@@ -109,6 +111,34 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
       router.push('/dashboard?tab=journal')
     }
   });
+
+  const deleteImage = trpc.journal.deleteImage.useMutation({
+    onSuccess: () => {
+      // No need to invalidate queries since we're managing state locally
+    },
+    onError: (error) => {
+      console.error("Error deleting image:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleImageDelete = async (imageUrl: string, index: number) => {
+    try {
+      await deleteImage.mutateAsync({
+        imageUrl,
+        entryId: id
+      });
+      
+      // Only update local state after successful deletion
+      setImages(prev => prev.filter((_, i) => i !== index));
+    } catch (error) {
+      console.error("Error handling image deletion:", error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -315,6 +345,26 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
                       alt={`Uploaded image ${index + 1}`}
                       className="h-full w-full rounded-lg object-cover"
                     />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-all">
+                      <div className="absolute inset-0 bg-black/40 rounded-lg"></div>
+                      <div className="relative z-10 flex gap-2">
+                        <a 
+                          href={image} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-full bg-white/10 text-white hover:bg-white/20"
+                        >
+                          <Image className="h-5 w-5" />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleImageDelete(image, index)}
+                          className="p-1.5 rounded-full bg-white/10 text-white hover:bg-red-500/50"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
