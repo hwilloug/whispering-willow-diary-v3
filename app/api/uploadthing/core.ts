@@ -1,6 +1,7 @@
 import { createUploadthing } from "uploadthing/next";
 import { auth } from "@clerk/nextjs/server";
 import { createRouteHandler } from "uploadthing/next";
+import { FileRouter } from "uploadthing/server";
 
 const f = createUploadthing();
 
