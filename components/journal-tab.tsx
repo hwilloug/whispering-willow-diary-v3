@@ -17,6 +17,7 @@ import {
   ChevronUp,
   Edit2,
   Trash2,
+  Image,
 } from 'lucide-react';
 import {
   Collapsible,
@@ -36,7 +37,9 @@ import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from "rehype-sanitize";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
-type Entry = RouterOutput['journal']['getAll']['entries'][number];
+type Entry = RouterOutput['journal']['getAll']['entries'][number] & {
+  images?: string[];
+};
 
 type DayEntry = {
   date: Date;
@@ -206,6 +209,7 @@ const EntryCard = ({entry, day}: {entry: Entry, day: DayEntry}) => {
       </div>
     </div>
     <h4 className="font-semibold">{entry.title}</h4>
+
     <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">
       <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
         {entry.content || ''}
@@ -230,6 +234,29 @@ const EntryCard = ({entry, day}: {entry: Entry, day: DayEntry}) => {
       ))}
       <EntryTags tags={entry.tags} />
     </div>
+    {entry.images && entry.images.length > 0 && (
+      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+        {entry.images.map((imageUrl, index) => (
+          <div key={index} className="relative aspect-square group">
+            <img
+              src={imageUrl}
+              alt={`Image ${index + 1} for entry`}
+              className="h-full w-full rounded-lg object-cover"
+            />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+              <a 
+                href={imageUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-white hover:text-blue-200"
+              >
+                <Image className="h-6 w-6" />
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
   </div>
   )
 }

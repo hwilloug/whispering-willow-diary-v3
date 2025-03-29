@@ -50,6 +50,7 @@ export const journalEntries = v3.table('journal_entries', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   tags: json('tags').$type<string[]>().default([]).notNull(),
+  images: json('images').$type<string[]>().default([]).notNull(),
 });
 
 // Activities logged for each journal entry

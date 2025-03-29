@@ -93,6 +93,7 @@ export class JournalService {
         exerciseMinutes: input.exerciseMinutes,
         affirmation: input.affirmation,
         tags: input.tags || [],
+        images: input.images || [],
       })
       .returning();
 
@@ -113,6 +114,7 @@ export class JournalService {
         affirmation: input.affirmation,
         updatedAt: new Date(),
         tags: input.tags || [],
+        images: input.images || [],
       })
       .where(and(
         eq(journalEntries.id, id),

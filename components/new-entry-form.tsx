@@ -24,6 +24,8 @@ import { inferRouterOutputs } from '@trpc/server';
 import TagSelector from "@/components/journal/tag-selector";
 import MDEditor from '@uiw/react-md-editor';
 import rehypeSanitize from "rehype-sanitize";
+import { UploadButton } from "@uploadthing/react";
+import { OurFileRouter } from "@/server/uploadthing";
 
 interface NewEntryFormProps {
   date: string;
@@ -66,6 +68,7 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
   const [exerciseMinutes, setExerciseMinutes] = useState<number | undefined>(undefined);
   const [tags, setTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
 
   // Initialize with existing entry if available
   useEffect(() => {
@@ -91,6 +94,7 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
       })) || []);
       setExerciseMinutes(existingEntry.exerciseMinutes ?? 0);
       setTags(existingEntry.tags || []);
+      setImages(existingEntry.images || []);
     }
   }, [existingEntry]);
 
@@ -131,16 +135,21 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
           amount: d.amount || '1',
           notes: d.notes || ''
         })),
-        tags
+        tags,
+        images: images
       };
 
+      console.log('Submitting entry with images:', images);
+
       if (!existingEntry) {
-        await createEntry.mutateAsync(entryData);
+        const result = await createEntry.mutateAsync(entryData);
+        console.log('Created entry:', result);
       } else if (id) {
-        await updateEntry.mutateAsync({
+        const result = await updateEntry.mutateAsync({
           id,
           data: entryData
         });
+        console.log('Updated entry:', result);
       }
     } catch (error) {
       console.error("Error saving entry:", error);
@@ -273,6 +282,43 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
             <div className="mt-1">
               <TagSelector selectedTags={tags} onChange={setTags} />
             </div>
+          </div>
+
+          <div className="mb-4">
+            <Label>Add Images</Label>
+            <div className="mt-2">
+              <UploadButton<OurFileRouter>
+                endpoint="imageUploader"
+                onClientUploadComplete={(res) => {
+                  if (res) {
+                    const newImages = res.map((file) => file.url);
+                    console.log('New images uploaded:', newImages);
+                    setImages((prev) => {
+                      const updated = [...prev, ...newImages];
+                      console.log('Updated images state:', updated);
+                      return updated;
+                    });
+                  }
+                }}
+                onUploadError={(error: Error) => {
+                  console.error(`Upload error: ${error.message}`);
+                }}
+              />
+            </div>
+            
+            {images.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                {images.map((image, index) => (
+                  <div key={index} className="relative aspect-square">
+                    <img
+                      src={image}
+                      alt={`Uploaded image ${index + 1}`}
+                      className="h-full w-full rounded-lg object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end space-x-4">

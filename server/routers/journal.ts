@@ -42,7 +42,11 @@ export const journalRouter = router({
     .input(createJournalEntrySchema)
     .mutation(async ({ ctx, input }) => {
       return await db.transaction(async (tx) => {
-        return await JournalService.createEntry(tx, ctx.userId, input);
+        const entry = await JournalService.createEntry(tx, ctx.userId, {
+          ...input,
+          images: input.images || [],
+        });
+        return entry;
       });
     }),
 
@@ -53,7 +57,11 @@ export const journalRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       return await db.transaction(async (tx) => {
-        return await JournalService.updateEntry(tx, ctx.userId, input.id, input.data);
+        const entry = await JournalService.updateEntry(tx, ctx.userId, input.id, {
+          ...input.data,
+          images: input.data.images || [],
+        });
+        return entry;
       });
     }),
 

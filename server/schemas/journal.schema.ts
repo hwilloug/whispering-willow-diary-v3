@@ -23,9 +23,18 @@ export const createJournalEntrySchema = z.object({
   affirmation: z.string().optional(),
   activities: z.array(z.string()).optional(),
   feelings: z.array(z.string()).optional(),
-  symptoms: z.array(symptomSchema).optional(),
-  substances: z.array(substanceSchema).optional(),
-  tags: z.array(z.string()).optional()
+  symptoms: z.array(z.object({
+    symptom: z.string(),
+    severity: z.number().optional(),
+    category: z.string()
+  })).optional(),
+  substances: z.array(z.object({
+    substance: z.string(),
+    amount: z.string().optional(),
+    notes: z.string().optional()
+  })).optional(),
+  tags: z.array(z.string()).optional(),
+  images: z.array(z.string()).optional(),
 });
 
 export type JournalEntry = typeof journalEntries.$inferSelect;
