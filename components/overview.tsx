@@ -1,6 +1,6 @@
 'use client';
 
-import { Line, LineChart, Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { Line, ComposedChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { trpc } from '@/lib/trpc';
 import { format, parse, subDays } from 'date-fns';
@@ -94,25 +94,40 @@ export function Overview() {
   }, [weekData]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <Card className="card-glass">
         <CardHeader>
-          <CardTitle>Mood & Sleep</CardTitle>
+          <CardTitle>Weekly Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={weekData}>
+          <ResponsiveContainer width="100%" height={400}>
+            <ComposedChart data={weekData}>
               <XAxis 
                 dataKey="name" 
                 {...chartConfig.xAxis}
               />
               <YAxis 
+                yAxisId="left"
                 {...chartConfig.yAxis}
                 domain={[0, 10]}
               />
+              <YAxis 
+                yAxisId="right"
+                orientation="right"
+                {...chartConfig.yAxis}
+              />
               <Tooltip {...chartConfig.tooltip} />
               <Legend {...chartConfig.legend} />
+              {/* Mental Health Indicator Bars with updated colors */}
+              <Bar yAxisId="right" dataKey="depression" stackId="a" fill="#FF6B6B" name="Depression" />
+              <Bar yAxisId="right" dataKey="anxiety" stackId="a" fill="#4ECDC4" name="Anxiety" />
+              <Bar yAxisId="right" dataKey="mania" stackId="a" fill="#FFD93D" name="Mania" />
+              <Bar yAxisId="right" dataKey="ocd" stackId="a" fill="#95A5A6" name="OCD" />
+              <Bar yAxisId="right" dataKey="adhd" stackId="a" fill="#6C5CE7" name="ADHD" />
+              <Bar yAxisId="right" dataKey="other" stackId="a" fill="#A8E6CF" name="Other" />
+              {/* Mood and Sleep Lines */}
               <Line
+                yAxisId="left"
                 type="monotone"
                 dataKey="mood"
                 stroke="rgb(var(--primary))"
@@ -121,6 +136,7 @@ export function Overview() {
                 dot={{ fill: 'rgb(var(--primary))' }}
               />
               <Line
+                yAxisId="left"
                 type="monotone"
                 dataKey="sleep"
                 stroke="rgb(var(--secondary))"
@@ -128,29 +144,7 @@ export function Overview() {
                 name="Sleep (hours)"
                 dot={{ fill: 'rgb(var(--secondary))' }}
               />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      <Card className="card-glass">
-        <CardHeader>
-          <CardTitle>Mental Health Indicators</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={weekData}>
-              <XAxis dataKey="name" {...chartConfig.xAxis} />
-              <YAxis {...chartConfig.yAxis} />
-              <Tooltip {...chartConfig.tooltip} />
-              <Legend {...chartConfig.legend} />
-              <Bar dataKey="depression" stackId="a" fill="rgb(var(--primary))" name="Depression" />
-              <Bar dataKey="anxiety" stackId="a" fill="rgb(var(--secondary))" name="Anxiety" />
-              <Bar dataKey="mania" stackId="a" fill="rgb(var(--primary-dark))" name="Mania" />
-              <Bar dataKey="ocd" stackId="a" fill="#673AB7" name="OCD" />
-              <Bar dataKey="adhd" stackId="a" fill="#9575CD" name="ADHD" />
-              <Bar dataKey="other" stackId="a" fill="#E0F0BB" name="Other" />
-            </BarChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
