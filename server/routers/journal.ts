@@ -8,7 +8,7 @@ import { format, parse } from 'date-fns';
 import { StreakService } from '../services/streak.service';
 import { and, eq } from 'drizzle-orm';
 import { utapi } from '@/app/api/uploadthing/core';
-import { journalEntries } from '@/db/v3.schema';
+import { journalEntries, goals, goalJournalEntries } from '@/db/v3.schema';
 
 export const journalRouter = router({
   getAll: protectedProcedure
@@ -42,13 +42,59 @@ export const journalRouter = router({
     }),
 
   create: protectedProcedure
-    .input(createJournalEntrySchema)
+    .input(z.object({
+      date: z.string(),
+      title: z.string(),
+      content: z.string(),
+      mood: z.number().min(1).max(10).optional(),
+      sleepHours: z.number().optional(),
+      exerciseMinutes: z.number().optional(),
+      affirmation: z.string().optional(),
+      activities: z.array(z.string()).optional(),
+      feelings: z.array(z.string()).optional(),
+      symptoms: z.array(z.object({
+        symptom: z.string(),
+        severity: z.number().optional(),
+        category: z.string().optional()
+      })).optional(),
+      substances: z.array(z.object({
+        substance: z.string(),
+        amount: z.string().optional(),
+        notes: z.string().optional()
+      })).optional(),
+      tags: z.array(z.string()).optional(),
+      images: z.array(z.string()).optional(),
+      goalUpdates: z.array(z.object({
+        goalId: z.string(),
+        progress: z.number(),
+        notes: z.string()
+      })).optional(),
+    }))
     .mutation(async ({ ctx, input }) => {
       return await db.transaction(async (tx) => {
-        const entry = await JournalService.createEntry(tx, ctx.userId, {
-          ...input,
-          images: input.images || [],
-        });
+        const entry = await JournalService.createEntry(tx, ctx.userId, input);
+
+        // Update goals if any
+        if (input.goalUpdates?.length) {
+          for (const update of input.goalUpdates) {
+            await tx.update(goals)
+              .set({ 
+                percentComplete: update.progress.toString(),
+                status: update.progress === 100 ? 'completed' : 'active',
+                updatedAt: new Date()
+              })
+              .where(eq(goals.id, update.goalId));
+
+            await tx.insert(goalJournalEntries).values({
+              goalId: update.goalId,
+              entryDate: new Date().toISOString(),
+              notes: update.notes,
+              progressUpdate: update.progress.toString(),
+              userId: ctx.userId,
+            });
+          }
+        }
+
         return entry;
       });
     }),

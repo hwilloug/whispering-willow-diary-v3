@@ -27,6 +27,7 @@ import { UploadDropzone } from "@uploadthing/react";
 import { OurFileRouter } from "@/app/api/uploadthing/core";
 import { Image, Trash2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { GoalSelector } from './journal/goal-selector';
 
 interface NewEntryFormProps {
   date: string;
@@ -71,6 +72,11 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
   const [tags, setTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [images, setImages] = useState<string[]>([]);
+  const [goalUpdates, setGoalUpdates] = useState<Array<{ 
+    goalId: string; 
+    progress: number; 
+    notes: string; 
+  }>>([]);
 
   // Initialize with existing entry if available
   useEffect(() => {
@@ -148,8 +154,8 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
       const entryData = {
         date,
         title: title || (content ? content.substring(0, 50) + (content.length > 50 ? "..." : "") : "Untitled Entry"),
-        content,
-        mood: mood,
+        content: content || '',
+        mood,
         sleepHours,
         exerciseMinutes,
         affirmation,
@@ -166,20 +172,17 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
           notes: d.notes || ''
         })),
         tags,
-        images: images
+        images: images,
+        goalUpdates,
       };
-
-      console.log('Submitting entry with images:', images);
 
       if (!existingEntry) {
         const result = await createEntry.mutateAsync(entryData);
-        console.log('Created entry:', result);
       } else if (id) {
         const result = await updateEntry.mutateAsync({
           id,
           data: entryData
         });
-        console.log('Updated entry:', result);
       }
     } catch (error) {
       console.error("Error saving entry:", error);
@@ -287,33 +290,6 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
             </div>
           </div>
 
-          <FeelingSelector 
-            selected={feelings} 
-            onSelect={setFeelings}
-          />
-
-          <ActivitySelector 
-            selected={activities} 
-            onSelect={setActivities}
-          />
-
-          <SymptomSelector 
-            selected={symptoms} 
-            onSelect={setSymptoms}
-          />
-
-          <DrugUseSelector 
-            selected={drugUse} 
-            onSelect={setDrugUse}
-          />
-
-          <div>
-            <Label htmlFor="tags">Tags</Label>
-            <div className="mt-1">
-              <TagSelector selectedTags={tags} onChange={setTags} />
-            </div>
-          </div>
-
           <div className="mb-4">
             <Label>Add Images</Label>
             <div className="mt-2">
@@ -334,15 +310,17 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
                   });
                 }}
                 className={`
-                  ut-upload-icon:text-primary ut-label:text-muted-foreground
-                  ut-button:bg-primary ut-button:text-primary-foreground
-                  ut-button:hover:bg-primary/90 ut-button:transition-colors
-                  ut-allowed-content:text-muted-foreground/80
-                  ut-upload-container:bg-primary-dark/50
-                  ut-upload-container:border-2 ut-upload-container:border-dashed
-                  ut-upload-container:border-muted/50 ut-upload-container:rounded-lg
-                  ut-upload-container:hover:bg-primary-dark/70
-                  ut-upload-container:transition-colors ut-upload-container:duration-200
+                  [&_[data-ut-element=button]]:hover:bg-primary-light/90 [&_[data-ut-element=button]]:p-2 [&_[data-ut-element=button]]:text-primary-dark
+                  [&_[data-ut-element=upload-icon]]:text-primary-dark [&_[data-ut-element=upload-icon]]:h-8 [&_[data-ut-element=upload-icon]]:w-8
+                  [&_[data-ut-element=label]]:text-primary-dark [&_[data-ut-element=label]]:font-medium
+                  [&_[data-ut-element=allowed-content]]:text-primary-dark
+                  border-2 border-dashed
+                  border-primary-dark/20
+                  bg-primary-light/20
+                  p-8
+                  hover:bg-primary-light/20
+                  rounded-lg
+                  transition-colors duration-200
                 `}
               />
             </div>
@@ -382,10 +360,45 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
             )}
           </div>
 
+          <FeelingSelector 
+            selected={feelings} 
+            onSelect={setFeelings}
+          />
+
+          <ActivitySelector 
+            selected={activities} 
+            onSelect={setActivities}
+          />
+
+          <SymptomSelector 
+            selected={symptoms} 
+            onSelect={setSymptoms}
+          />
+
+          <DrugUseSelector 
+            selected={drugUse} 
+            onSelect={setDrugUse}
+          />
+
+          <GoalSelector 
+            onUpdate={(updates) => {
+              setGoalUpdates(updates);
+            }}
+          />
+
+          <div>
+            <Label htmlFor="tags">Tags</Label>
+            <div className="mt-1">
+              <TagSelector selectedTags={tags} onChange={setTags} />
+            </div>
+          </div>
+
+
           <div className="flex justify-end space-x-4">
             <Button
-              variant="outline"
+              variant="default"
               type="button"
+              className="bg-transparent text-primary-dark"
               onClick={() => router.back()}
             >
               Cancel

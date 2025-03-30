@@ -311,19 +311,35 @@ export default function GoalsList() {
                                     {goal.journalEntries?.map((entry: typeof GoalJournalEntry) => (
                                       <div
                                         key={entry.id.toString()}
-                                        className="text-sm bg-primary-light rounded-lg p-3"
+                                        className="text-sm bg-primary-light/50 rounded-lg p-3 space-y-2"
                                       >
-                                        <div className="flex justify-between">
-                                          <span className="opacity-70">
-                                            {format(new Date(entry.entryDate.toString()), 'MMM d, yyyy')}
-                                          </span>
+                                        <div className="flex justify-between items-start">
+                                          <div>
+                                            <span className="text-primary-dark/70">
+                                              {format(new Date(entry.entryDate.toString()), 'MMM d, yyyy')}
+                                            </span>
+                                            <div className="flex items-center gap-2 mt-1">
+                                              <div className="h-2 w-2 rounded-full bg-primary-dark/30" />
+                                              <span className="font-medium">
+                                                Progress updated to {entry.progressUpdate}%
+                                              </span>
+                                            </div>
+                                          </div>
                                           {entry.progressUpdate && (
-                                            <span className="text-primary-light font-medium">
-                                              {entry.progressUpdate.toString()}% progress
+                                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                              Number(entry.progressUpdate) === 100 
+                                                ? 'bg-green-100 text-green-800' 
+                                                : 'bg-primary-dark/10 text-primary-dark/70'
+                                            }`}>
+                                              {Number(entry.progressUpdate) === 100 ? 'Completed' : `${entry.progressUpdate}%`}
                                             </span>
                                           )}
                                         </div>
-                                        <p className="mt-2 leading-relaxed">{entry.notes.toString()}</p>
+                                        {entry.notes && (
+                                          <p className="text-primary-dark/80 mt-2 whitespace-pre-wrap">
+                                            {entry.notes.toString()}
+                                          </p>
+                                        )}
                                       </div>
                                     ))}
                                   </div>
