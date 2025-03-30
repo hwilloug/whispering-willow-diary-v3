@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Plus, X } from 'lucide-react';
 
 interface NewGoalDialogProps {
@@ -94,23 +94,38 @@ export default function NewGoalDialog({ open, onOpenChange }: NewGoalDialogProps
 
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
-            <Select
-              value={formData.subcategoryId}
-              onValueChange={(value) => setFormData({ ...formData, subcategoryId: value })}
+            <Select 
+              value={formData.subcategoryId || 'none'} 
+              onValueChange={(value) => setFormData({ 
+                ...formData, 
+                subcategoryId: value === 'none' ? '' : value 
+              })}
             >
               <SelectTrigger className="bg-white border-none">
-                <SelectValue placeholder="Select a category" />
+                <SelectValue placeholder="Select a category (optional)" />
               </SelectTrigger>
-              <SelectContent className="bg-white">
-                {categories?.map((category) => (
-                  <div key={category.id}>
-                    <div className="px-2 py-1.5 text-sm font-semibold text-primary-dark">{category.name}</div>
-                    {category.subcategories.map((sub) => (
-                      <SelectItem key={sub.id} value={sub.id} className="text-primary-dark hover:bg-primary-light/20">
-                        {sub.name}
+              <SelectContent className="bg-white/95 backdrop-blur border-primary-dark">
+                <SelectItem 
+                  value="none" 
+                  className="text-primary-dark/70 hover:bg-primary-light/20"
+                >
+                  No category
+                </SelectItem>
+                {categories?.map(category => (
+                  <SelectGroup key={category.id}>
+                    <SelectLabel className="text-primary-dark font-medium">
+                      {category.name}
+                    </SelectLabel>
+                    {category.subcategories?.map(subcategory => (
+                      <SelectItem 
+                        key={subcategory.id} 
+                        value={subcategory.id}
+                        className="text-primary-dark/80 hover:bg-primary-light/20"
+                      >
+                        {subcategory.name}
                       </SelectItem>
                     ))}
-                  </div>
+                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>

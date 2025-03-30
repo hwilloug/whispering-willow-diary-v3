@@ -54,13 +54,14 @@ export const goalsRouter = router({
     .input(z.object({
       title: z.string(),
       description: z.string(),
-      subcategoryId: z.string(),
+      subcategoryId: z.string().optional(),
       targetDate: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
       return await db.insert(goals).values({
         ...input,
         userId: ctx.userId,
+        subcategoryId: input.subcategoryId || null,
       });
     }),
 
@@ -68,7 +69,7 @@ export const goalsRouter = router({
     .input(z.object({
       title: z.string(),
       description: z.string(),
-      subcategoryId: z.string(),
+      subcategoryId: z.string().optional(),
       targetDate: z.string(),
       milestones: z.array(z.object({
         description: z.string(),
@@ -83,6 +84,7 @@ export const goalsRouter = router({
           .values({
             ...goalData,
             userId: ctx.userId,
+            subcategoryId: input.subcategoryId || null,
           })
           .returning();
 

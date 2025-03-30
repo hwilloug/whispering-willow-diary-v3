@@ -6,16 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Goal } from '@/types/goal';
+import { goals as Goal } from '@/db/v3.schema';
 
 interface EditGoalDialogProps {
   goal: {
-    id: typeof Goal.id;
-    title: typeof Goal.title;
-    description: typeof Goal.description;
-    subcategoryId: typeof Goal.subcategoryId;
-    targetDate: typeof Goal.targetDate;
-    status: typeof Goal.status;
+    id: string;
+    title: string;
+    description: string | null;
+    subcategoryId: string | null;
+    targetDate: string | null;
+    status: string;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -23,11 +23,11 @@ interface EditGoalDialogProps {
 
 export function EditGoalDialog({ goal, open, onOpenChange }: EditGoalDialogProps) {
   const [formData, setFormData] = useState({
-    title: goal.title,
-    description: goal.description ?? '',
-    subcategoryId: goal.subcategoryId ?? '',
-    targetDate: goal.targetDate ?? '',
-    status: goal.status,
+    title: goal.title.toString(),
+    description: goal.description?.toString() ?? '',
+    subcategoryId: goal.subcategoryId?.toString() ?? '',
+    targetDate: goal.targetDate?.toString() ?? '',
+    status: goal.status as "active" | "completed" | "on_hold" | "archived",
   });
 
   const { data: categories } = trpc.goals.getCategories.useQuery();
@@ -108,7 +108,7 @@ export function EditGoalDialog({ goal, open, onOpenChange }: EditGoalDialogProps
             <Label>Status</Label>
             <Select
               value={formData.status}
-              onValueChange={(value) => setFormData({ ...formData, status: value })}
+              onValueChange={(value) => setFormData({ ...formData, status: value as "active" | "completed" | "on_hold" | "archived" })}
             >
               <SelectTrigger className="bg-white border-none">
                 <SelectValue />

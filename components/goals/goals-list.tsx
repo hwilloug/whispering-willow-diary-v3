@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Progress } from '../ui/progress';
@@ -259,8 +261,13 @@ export default function GoalsList() {
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
-                                <span className={`badge ${getStatusBadgeColor(goal.status.toString())} text-sm font-medium`}>
-                                  {goal.status.toString()}
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(goal.status.toString(), goal.targetDate?.toString())}`}>
+                                  {goal.targetDate && 
+                                   goal.status.toString() !== 'completed' && 
+                                   goal.status.toString() !== 'archived' && 
+                                   new Date(goal.targetDate.toString()) < new Date() 
+                                    ? 'Overdue' 
+                                    : goal.status.toString()}
                                 </span>
                               </div>
                             </div>
@@ -334,7 +341,7 @@ export default function GoalsList() {
                                             <div className="flex items-center gap-2 mt-1">
                                               <div className="h-2 w-2 rounded-full bg-primary-dark/30" />
                                               <span className="font-medium">
-                                                Progress updated to {entry.progressUpdate}%
+                                                Progress updated to {entry.progressUpdate.toString()}%
                                               </span>
                                             </div>
                                           </div>
@@ -410,7 +417,14 @@ export default function GoalsList() {
 
       {editingGoal && (
         <EditGoalDialog
-          goal={goals.find(g => g.id.toString() === editingGoal)!}
+          goal={{
+            id: editingGoal,
+            title: goals.find(g => g.id.toString() === editingGoal)!.title.toString(),
+            description: goals.find(g => g.id.toString() === editingGoal)!.description?.toString() ?? null,
+            subcategoryId: goals.find(g => g.id.toString() === editingGoal)!.subcategoryId?.toString() ?? null,
+            targetDate: goals.find(g => g.id.toString() === editingGoal)!.targetDate?.toString() ?? null,
+            status: goals.find(g => g.id.toString() === editingGoal)!.status.toString(),
+          }}
           open={true}
           onOpenChange={(open) => !open && setEditingGoal(null)}
         />
@@ -419,17 +433,25 @@ export default function GoalsList() {
   );
 }
 
-function getStatusBadgeColor(status: string) {
-  switch (status) {
+function getStatusBadgeColor(status: string, targetDate: string | null) {
+  // Check if goal is overdue
+  if (targetDate && 
+      status.toString() !== 'completed' && 
+      status.toString() !== 'archived' && 
+      new Date(targetDate) < new Date()) {
+    return 'bg-red-600 text-white';
+  }
+
+  switch (status.toString()) {
     case 'active':
-      return 'badge-primary';
+      return 'bg-blue-600 text-white';
     case 'completed':
-      return 'badge-success';
+      return 'bg-green-600 text-white';
     case 'on_hold':
-      return 'badge-warning';
+      return 'bg-amber-600 text-white';
     case 'archived':
-      return 'badge-secondary';
+      return 'bg-gray-600 text-white';
     default:
-      return 'badge-secondary';
+      return 'bg-gray-600 text-white';
   }
 } 
