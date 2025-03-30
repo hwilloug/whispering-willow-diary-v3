@@ -23,7 +23,7 @@ import { inferRouterOutputs } from '@trpc/server';
 import TagSelector from "@/components/journal/tag-selector";
 import MDEditor from '@uiw/react-md-editor';
 import rehypeSanitize from "rehype-sanitize";
-import { UploadButton } from "@uploadthing/react";
+import { UploadDropzone } from "@uploadthing/react";
 import { OurFileRouter } from "@/app/api/uploadthing/core";
 import { Image, Trash2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
@@ -317,22 +317,33 @@ export function NewEntryForm({ date, id }: NewEntryFormProps) {
           <div className="mb-4">
             <Label>Add Images</Label>
             <div className="mt-2">
-              <UploadButton<OurFileRouter, "imageUploader">
+              <UploadDropzone<OurFileRouter, "imageUploader">
                 endpoint="imageUploader"
                 onClientUploadComplete={(res) => {
                   if (res) {
                     const newImages = res.map((file) => file.url);
-                    console.log('New images uploaded:', newImages);
-                    setImages((prev) => {
-                      const updated = [...prev, ...newImages];
-                      console.log('Updated images state:', updated);
-                      return updated;
-                    });
+                    setImages((prev) => [...prev, ...newImages]);
                   }
                 }}
                 onUploadError={(error: Error) => {
                   console.error(`Upload error: ${error.message}`);
+                  toast({
+                    title: "Upload Failed",
+                    description: error.message,
+                    variant: "destructive",
+                  });
                 }}
+                className={`
+                  ut-upload-icon:text-primary ut-label:text-muted-foreground
+                  ut-button:bg-primary ut-button:text-primary-foreground
+                  ut-button:hover:bg-primary/90 ut-button:transition-colors
+                  ut-allowed-content:text-muted-foreground/80
+                  ut-upload-container:bg-primary-dark/50
+                  ut-upload-container:border-2 ut-upload-container:border-dashed
+                  ut-upload-container:border-muted/50 ut-upload-container:rounded-lg
+                  ut-upload-container:hover:bg-primary-dark/70
+                  ut-upload-container:transition-colors ut-upload-container:duration-200
+                `}
               />
             </div>
             
