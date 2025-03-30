@@ -183,4 +183,27 @@ export const goalsRouter = router({
         .where(eq(goals.id, input.id))
         .returning();
     }),
+
+  toggleMilestone: protectedProcedure
+    .input(z.object({
+      id: z.string()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const milestone = await db.query.goalMilestones.findFirst({
+        where: eq(goalMilestones.id, input.id)
+      });
+
+      if (!milestone) {
+        throw new Error('Milestone not found');
+      }
+
+      await db.update(goalMilestones)
+        .set({ 
+          isComplete: !milestone.isComplete,
+          updatedAt: new Date()
+        })
+        .where(eq(goalMilestones.id, input.id));
+
+      return { success: true };
+    }),
 }); 

@@ -63,6 +63,12 @@ export default function GoalsList() {
     },
   });
 
+  const toggleMilestone = trpc.goals.toggleMilestone.useMutation({
+    onSuccess: () => {
+      utils.goals.list.invalidate();
+    }
+  });
+
   // Group goals by category and archive status
   const { activeGoals, archivedGoals } = goals?.reduce((acc, goal) => {
     if (goal.status.toString() === 'archived') {
@@ -286,14 +292,21 @@ export default function GoalsList() {
                                       key={milestone.id.toString()}
                                       className="flex items-center gap-3 text-sm bg-primary-light p-2 rounded"
                                     >
-                                      <CheckCircle2 
-                                        className={`w-4 h-4 ${
-                                          milestone.isComplete 
-                                            ? 'text-green-400' 
-                                            : 'opacity-50'
-                                        }`}
-                                      />
-                                      <span>{milestone.description.toString()}</span>
+                                      <button
+                                        onClick={() => toggleMilestone.mutate({ id: milestone.id.toString() })}
+                                        className="hover:scale-110 transition-transform"
+                                      >
+                                        <CheckCircle2 
+                                          className={`w-4 h-4 ${
+                                            milestone.isComplete 
+                                              ? 'text-green-400' 
+                                              : 'text-primary-dark/30 hover:text-primary-dark/50'
+                                          }`}
+                                        />
+                                      </button>
+                                      <span className={milestone.isComplete ? 'line-through opacity-50' : ''}>
+                                        {milestone.description.toString()}
+                                      </span>
                                       <span className="opacity-70 ml-auto">
                                         {milestone.dueDate ? format(new Date(milestone.dueDate.toString()), 'MMM d') : 'No date'}
                                       </span>
