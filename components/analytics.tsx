@@ -108,7 +108,7 @@ export function Analytics({ filter }: { filter: Filter }) {
       
       const validSleepHours = entries
         .map(entry => entry.sleepHours)
-        .filter((sleep): sleep is number => sleep !== null && sleep !== undefined)
+        .filter((sleep): sleep is string => sleep !== null && sleep !== undefined)
         .map(Number);
 
       // Calculate symptom counts - take max count per category per day
@@ -255,13 +255,13 @@ export function Analytics({ filter }: { filter: Filter }) {
         date: dateData.date,
         dateObj: dateData.dateObj,
         mood: dateData.moods.length > 0 
-          ? dateData.moods.reduce((sum, val) => sum + val, 0) / dateData.moods.length 
+          ? dateData.moods.reduce((sum: number, val: number) => sum + val, 0) / dateData.moods.length 
           : undefined,
         sleep: dateData.sleepHours.length > 0
-          ? dateData.sleepHours.reduce((sum, val) => sum + val, 0) / dateData.sleepHours.length
+          ? dateData.sleepHours.reduce((sum: number, val: number) => sum + val, 0) / dateData.sleepHours.length
           : undefined,
         exercise: dateData.exerciseMinutes.length > 0
-          ? dateData.exerciseMinutes.reduce((sum, val) => sum + val, 0) / dateData.exerciseMinutes.length
+          ? dateData.exerciseMinutes.reduce((sum: number, val: number) => sum + val, 0) / dateData.exerciseMinutes.length
           : undefined,
         depression: dateData.symptoms.depression || undefined,
         anxiety: dateData.symptoms.anxiety || undefined,
