@@ -85,14 +85,57 @@ export const substanceUse = v3.table('substance_use', {
   notes: text('notes'),
 });
 
-// Goals and intentions
+// Goal Categories
+export const goalCategories = v3.table('goal_categories', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Goal Subcategories
+export const goalSubcategories = v3.table('goal_subcategories', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  categoryId: uuid('category_id').notNull().references(() => goalCategories.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Replace the existing goals table with the new schema
 export const goals = v3.table('goals', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: text('user_id').notNull(),
   title: text('title').notNull(),
   description: text('description'),
+  subcategoryId: uuid('subcategory_id').references(() => goalSubcategories.id),
+  startDate: date('start_date'),
   targetDate: date('target_date'),
-  completed: boolean('completed').default(false).notNull(),
+  percentComplete: numeric('percent_complete').default('0'),
+  status: text('status').default('active').notNull(), // 'active', 'completed', 'on_hold'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Goal Milestones
+export const goalMilestones = v3.table('goal_milestones', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  goalId: uuid('goal_id').notNull().references(() => goals.id, { onDelete: 'cascade' }),
+  description: text('description').notNull(),
+  dueDate: date('due_date'),
+  isComplete: boolean('is_complete').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Goal Journal Entries (Check-ins)
+export const goalJournalEntries = v3.table('goal_journal_entries', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  goalId: uuid('goal_id').notNull().references(() => goals.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull(),
+  entryDate: date('entry_date').notNull(),
+  notes: text('notes'),
+  progressUpdate: numeric('progress_update'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -157,4 +200,39 @@ export const substanceUseRelations = relations(substanceUse, ({ one }) => ({
     relationName: 'substance_use',
     references: [journalEntries.id]
   })
+}));
+
+// Goal Relations
+export const goalCategoriesRelations = relations(goalCategories, ({ many }) => ({
+  subcategories: many(goalSubcategories),
+}));
+
+export const goalSubcategoriesRelations = relations(goalSubcategories, ({ one }) => ({
+  category: one(goalCategories, {
+    fields: [goalSubcategories.categoryId],
+    references: [goalCategories.id],
+  }),
+}));
+
+export const goalsRelations = relations(goals, ({ one, many }) => ({
+  subcategory: one(goalSubcategories, {
+    fields: [goals.subcategoryId],
+    references: [goalSubcategories.id],
+  }),
+  milestones: many(goalMilestones),
+  journalEntries: many(goalJournalEntries),
+}));
+
+export const goalMilestonesRelations = relations(goalMilestones, ({ one }) => ({
+  goal: one(goals, {
+    fields: [goalMilestones.goalId],
+    references: [goals.id],
+  }),
+}));
+
+export const goalJournalEntriesRelations = relations(goalJournalEntries, ({ one }) => ({
+  goal: one(goals, {
+    fields: [goalJournalEntries.goalId],
+    references: [goals.id],
+  }),
 }));

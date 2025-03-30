@@ -100,12 +100,12 @@ export default function DashboardPage() {
         </div>
         <Tabs value={tab} onValueChange={handleTabChange} className="space-y-4">
           <div className="flex justify-between items-center">
-            <TabsList className="flex justify-between items-center">
+            <TabsList className="flex justify-between items-center z-50">
               <div className="bg-primary-dark/80 backdrop-blur-sm shadow-xl border border-black">
-              <TabsTrigger value="overview" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Overview</TabsTrigger>
-              <TabsTrigger value="analytics" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Analytics</TabsTrigger>
-              <TabsTrigger value="journal" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Journal</TabsTrigger>
-              <TabsTrigger value="goals" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Goals</TabsTrigger>
+                <TabsTrigger value="overview" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Overview</TabsTrigger>
+                <TabsTrigger value="analytics" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Analytics</TabsTrigger>
+                <TabsTrigger value="journal" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Journal</TabsTrigger>
+                <TabsTrigger value="goals" className="text-primary-light data-[state=active]:bg-primary-light/80 data-[state=active]:text-primary-dark">Goals</TabsTrigger>
               </div>
             </TabsList>
             {tab === 'analytics' && (
