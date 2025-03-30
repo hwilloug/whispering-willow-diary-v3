@@ -1,44 +1,36 @@
-import { differenceInDays, parse, format } from 'date-fns';
+import { differenceInDays, parse, format, subDays } from 'date-fns';
 
 export class StatsCalculator {
   static calculateStreak(entries: any[]) {
     if (!entries.length) return 0;
 
     // Sort entries by date in descending order (newest first)
-    const sortedEntries = entries.sort((a, b) => 
-      parse(b.date, 'yyyy-MM-dd', new Date()).getTime() - parse(a.date, 'yyyy-MM-dd', new Date()).getTime()
-    );
+    const uniqueDates = new Set(entries.map(entry => entry.date));
+    const sortedDates = Array.from(uniqueDates).sort().reverse();
 
-    let streak = 1;
-    let currentDate = parse(sortedEntries[0].date, 'yyyy-MM-dd', new Date());
-    
-    // Check if most recent entry is from today
-    const today = new Date();
-    if (format(currentDate, 'yyyy-MM-dd') !== format(today, 'yyyy-MM-dd')) {
-      return 0;
+    let currentStreak = 0;
+    let lastDate = new Date();
+    const today = format(lastDate, 'yyyy-MM-dd');
+
+    // If no entry for today, start counting from yesterday
+    if (!uniqueDates.has(today)) {
+      lastDate = subDays(lastDate, 1);
     }
 
-    // Look at each consecutive day
-    for (let i = 1; i < sortedEntries.length; i++) {
-      const entryDate = parse(sortedEntries[i].date, 'yyyy-MM-dd', new Date());
-      const dayDiff = differenceInDays(currentDate, entryDate);
+    // Count consecutive days
+    for (const dateStr of sortedDates) {
+      const date = parse(dateStr, 'yyyy-MM-dd', new Date());
+      const dayDiff = differenceInDays(lastDate, date);
 
-      // If exactly 1 day difference, increment streak
-      if (dayDiff === 1) {
-        streak++;
-        currentDate = entryDate;
-      }
-      // If same day, continue checking
-      else if (dayDiff === 0) {
-        continue;
-      }
-      // If gap in days, stop counting
-      else {
+      if (dayDiff <= 1) {
+        currentStreak++;
+        lastDate = date;
+      } else {
         break;
       }
     }
 
-    return streak;
+    return currentStreak;
   }
 
   static calculateAverages(entries: any[]) {

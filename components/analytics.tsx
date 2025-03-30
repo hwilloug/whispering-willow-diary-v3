@@ -101,40 +101,57 @@ export function Analytics({ filter }: { filter: Filter }) {
       const dateStr = format(date, 'yyyy-MM-dd');
       const entries = entriesData.filter(entry => entry.date === dateStr) || [];
       
-      // Calculate totals and averages across all entries for the day
-      let totalMood = 0;
-      let moodCount = 0;
-      let totalSleep = 0;
-      let depressionCount = 0;
-      let anxietyCount = 0;
-      let maniaCount = 0;
-      let ocdCount = 0;
-      let adhdCount = 0;
-      let otherCount = 0;
+      // For each field, first try to get valid values
+      const validMoods = entries
+        .map(entry => entry.mood)
+        .filter((mood): mood is number => mood !== null && mood !== undefined);
+      
+      const validSleepHours = entries
+        .map(entry => entry.sleepHours)
+        .filter((sleep): sleep is number => sleep !== null && sleep !== undefined)
+        .map(Number);
 
-      entries.forEach(entry => {
-        totalMood += entry.mood ?? 0;
-        moodCount += entry.mood ? 1 : 0;
-        totalSleep += Number(entry.sleepHours) || 0;
-        depressionCount += getSymptomCount(entry.symptoms, 'Depression');
-        anxietyCount += getSymptomCount(entry.symptoms, 'Anxiety'); 
-        maniaCount += getSymptomCount(entry.symptoms, 'Mania');
-        ocdCount += getSymptomCount(entry.symptoms, 'OCD');
-        adhdCount += getSymptomCount(entry.symptoms, 'ADHD');
-        otherCount += getSymptomCount(entry.symptoms, 'Other');
+      // Calculate symptom counts - take max count per category per day
+      const symptomCounts = entries.reduce((acc, entry) => {
+        const depression = getSymptomCount(entry.symptoms, 'Depression');
+        const anxiety = getSymptomCount(entry.symptoms, 'Anxiety');
+        const mania = getSymptomCount(entry.symptoms, 'Mania');
+        const ocd = getSymptomCount(entry.symptoms, 'OCD');
+        const adhd = getSymptomCount(entry.symptoms, 'ADHD');
+        const other = getSymptomCount(entry.symptoms, 'Other');
+
+        return {
+          depression: Math.max(acc.depression, depression),
+          anxiety: Math.max(acc.anxiety, anxiety),
+          mania: Math.max(acc.mania, mania),
+          ocd: Math.max(acc.ocd, ocd),
+          adhd: Math.max(acc.adhd, adhd),
+          other: Math.max(acc.other, other),
+        };
+      }, {
+        depression: 0,
+        anxiety: 0,
+        mania: 0,
+        ocd: 0,
+        adhd: 0,
+        other: 0
       });
 
-      const avgMood = moodCount > 0 ? totalMood / moodCount : 0;
       return {
         date: format(date, 'EEE'),
-        sleep: totalSleep === 0 ? undefined : totalSleep,
-        mood: avgMood === 0 ? undefined : avgMood,
-        depression: depressionCount,
-        anxiety: anxietyCount,
-        mania: maniaCount,
-        ocd: ocdCount,
-        adhd: adhdCount,
-        other: otherCount
+        // If we have valid values, calculate average, otherwise undefined
+        mood: validMoods.length > 0 
+          ? validMoods.reduce((sum, val) => sum + val, 0) / validMoods.length 
+          : undefined,
+        sleep: validSleepHours.length > 0
+          ? validSleepHours.reduce((sum, val) => sum + val, 0) / validSleepHours.length
+          : undefined,
+        depression: symptomCounts.depression || undefined,
+        anxiety: symptomCounts.anxiety || undefined,
+        mania: symptomCounts.mania || undefined,
+        ocd: symptomCounts.ocd || undefined,
+        adhd: symptomCounts.adhd || undefined,
+        other: symptomCounts.other || undefined
       };
     });
   }, [dates, entriesData]);
@@ -194,22 +211,62 @@ export function Analytics({ filter }: { filter: Filter }) {
       const dateStr = format(date, 'MMM dd');
       
       if (!dataByDate.has(dateStr)) {
+        // Initialize new date entry
         dataByDate.set(dateStr, {
-          mood: entry.mood || 0,
-          sleep: entry.sleepHours ? Number(entry.sleepHours) : undefined,
-          exercise: entry.exerciseMinutes || 0,
-          symptoms: entry.symptoms?.length || 0,
+          moods: [],
+          sleepHours: [],
+          exerciseMinutes: [],
           date: dateStr,
           dateObj: date,
-          depression: entry.symptoms?.filter(s => s.category === 'Depression').length || 0,
-          anxiety: entry.symptoms?.filter(s => s.category === 'Anxiety').length || 0,
-          mania: entry.symptoms?.filter(s => s.category === 'Mania').length || 0,
+          symptoms: {
+            depression: 0,
+            anxiety: 0,
+            mania: 0
+          }
         });
       }
+
+      const dateData = dataByDate.get(dateStr);
+      
+      // Collect all valid values for the day
+      if (entry.mood !== null && entry.mood !== undefined) {
+        dateData.moods.push(entry.mood);
+      }
+      if (entry.sleepHours !== null && entry.sleepHours !== undefined) {
+        dateData.sleepHours.push(Number(entry.sleepHours));
+      }
+      if (entry.exerciseMinutes) {
+        dateData.exerciseMinutes.push(entry.exerciseMinutes);
+      }
+
+      // Update maximum symptom counts
+      const depressionCount = entry.symptoms?.filter(s => s.category === 'Depression').length || 0;
+      const anxietyCount = entry.symptoms?.filter(s => s.category === 'Anxiety').length || 0;
+      const maniaCount = entry.symptoms?.filter(s => s.category === 'Mania').length || 0;
+
+      dateData.symptoms.depression = Math.max(dateData.symptoms.depression, depressionCount);
+      dateData.symptoms.anxiety = Math.max(dateData.symptoms.anxiety, anxietyCount);
+      dateData.symptoms.mania = Math.max(dateData.symptoms.mania, maniaCount);
     });
 
-    // Convert to array and sort by date (oldest to newest)
+    // Process the collected data into averages
     return Array.from(dataByDate.values())
+      .map(dateData => ({
+        date: dateData.date,
+        dateObj: dateData.dateObj,
+        mood: dateData.moods.length > 0 
+          ? dateData.moods.reduce((sum, val) => sum + val, 0) / dateData.moods.length 
+          : undefined,
+        sleep: dateData.sleepHours.length > 0
+          ? dateData.sleepHours.reduce((sum, val) => sum + val, 0) / dateData.sleepHours.length
+          : undefined,
+        exercise: dateData.exerciseMinutes.length > 0
+          ? dateData.exerciseMinutes.reduce((sum, val) => sum + val, 0) / dateData.exerciseMinutes.length
+          : undefined,
+        depression: dateData.symptoms.depression || undefined,
+        anxiety: dateData.symptoms.anxiety || undefined,
+        mania: dateData.symptoms.mania || undefined
+      }))
       .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
   }, [entriesData]);
 

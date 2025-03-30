@@ -1,6 +1,6 @@
 import { db } from '@/db';
-import { userStreaks } from '@/db/v3.schema';
-import { eq } from 'drizzle-orm';
+import { userStreaks, journalEntries } from '@/db/v3.schema';
+import { eq, desc } from 'drizzle-orm';
 import { differenceInDays, format, parse, isYesterday, isSameDay, addDays } from 'date-fns';
 import { DbTransaction } from '@/db/types';
 
@@ -18,7 +18,6 @@ export class StreakService {
   }
 
   static async updateStreak(tx: DbTransaction, userId: string, entryDate: string) {
-    // Get the user's current streak info
     const userStreak = await tx.query.userStreaks.findFirst({
       where: eq(userStreaks.userId, userId)
     });
@@ -31,61 +30,54 @@ export class StreakService {
       return userStreak;
     }
 
-    let currentStreak = 1; // Default to 1 for a new streak
-    let longestStreak = userStreak?.longestStreak || 0;
+    // Get all entries to recalculate streak
+    const entries = await tx.query.journalEntries.findMany({
+      where: eq(journalEntries.userId, userId),
+      orderBy: [desc(journalEntries.date)]
+    });
 
-    // If user has a previous streak
-    if (userStreak?.lastEntryDate) {
-      const lastEntryDateObj = parse(userStreak.lastEntryDate, 'yyyy-MM-dd', new Date());
-          
-      // Calculate the expected next day for the streak
-      const expectedNextDay = addDays(lastEntryDateObj, 1);
-            
-      // If the entry is for the expected next day, increment streak
-      if (isSameDay(entryDateObj, expectedNextDay)) {
-        currentStreak = (userStreak.currentStreak || 0) + 1;
-      } 
-      // If the entry is for the same day as the last entry, maintain current streak
-      else if (isSameDay(entryDateObj, lastEntryDateObj)) {
-        currentStreak = userStreak.currentStreak || 1;
+    // Add the new entry date if it's not already included
+    const allDates = new Set([...entries.map(e => e.date), entryDate]);
+    const sortedDates = Array.from(allDates).sort().reverse();
+
+    let currentStreak = 0;
+    let lastDate = parse(today, 'yyyy-MM-dd', new Date());
+
+    // Calculate streak by looking for consecutive days
+    for (const dateStr of sortedDates) {
+      const date = parse(dateStr, 'yyyy-MM-dd', new Date());
+      const dayDiff = differenceInDays(lastDate, date);
+
+      if (dayDiff <= 1) {
+        currentStreak++;
+        lastDate = date;
+      } else {
+        break;
       }
-      // Otherwise (gap in days or entry for a previous day), reset to 1
-      else {
-        console.log("Entry is not consecutive, resetting streak to 1");
-      }
-    } else {
-      console.log("No previous streak data, starting new streak");
     }
 
     // Update longest streak if current streak is longer
-    if (currentStreak > longestStreak) {
-      longestStreak = currentStreak;
-    }
+    const longestStreak = Math.max(userStreak?.longestStreak || 0, currentStreak);
 
-    // Update or create the user streak record
+    // Update or insert streak record
     if (userStreak) {
-      return await tx
-        .update(userStreaks)
+      await tx.update(userStreaks)
         .set({
           currentStreak,
           longestStreak,
-          lastEntryDate: entryDate,
-          updatedAt: new Date()
+          lastEntryDate: entryDate
         })
-        .where(eq(userStreaks.userId, userId))
-        .returning();
+        .where(eq(userStreaks.userId, userId));
     } else {
-      return await tx
-        .insert(userStreaks)
+      await tx.insert(userStreaks)
         .values({
           userId,
           currentStreak,
           longestStreak,
-          lastEntryDate: entryDate,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .returning();
+          lastEntryDate: entryDate
+        });
     }
+
+    return { currentStreak, longestStreak, lastEntryDate: entryDate };
   }
 } 

@@ -148,35 +148,49 @@ export function JournalTab({ selectedDates }: JournalTabProps) {
 const DayEntries = ({day, toggleDay}: {day: DayEntry, toggleDay: (date: Date) => void}) => {
   return (
     <Card key={day.date.toISOString()} className="card-glass">
-    <Collapsible open={day.expanded}>
-      <CollapsibleTrigger asChild>
-        <CardHeader
-          className="cursor-pointer hover:bg-muted/50"
-          onClick={() => toggleDay(day.date)}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>
-                {format(day.date, 'EEEE, MMMM d, yyyy')}
-              </CardTitle>
-              <CardDescription>
-                {day.entries.length} {day.entries.length === 1 ? 'entry' : 'entries'}
-              </CardDescription>
+      <Collapsible open={day.expanded}>
+        <CollapsibleTrigger asChild>
+          <CardHeader
+            className="cursor-pointer hover:bg-muted/50"
+            onClick={() => toggleDay(day.date)}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>
+                  {format(day.date, 'EEEE, MMMM d, yyyy')}
+                </CardTitle>
+                <CardDescription>
+                  {day.entries.length} {day.entries.length === 1 ? 'entry' : 'entries'}
+                </CardDescription>
+              </div>
+              {day.expanded ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
             </div>
-            {day.expanded ? (
-              <ChevronUp className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            )}
-          </div>
-        </CardHeader>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <CardContent style={{ padding: 0 }}>
-          {day.entries.map((entry, index) => (
-            <EntryCard key={index} entry={entry} day={day} />
-          ))}
-        </CardContent>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent style={{ padding: 0 }}>
+            {day.entries.map((entry, index) => (
+              <EntryCard key={index} entry={entry} day={day} />
+            ))}
+            <div className="flex justify-center px-2 pb-2">
+              <Link
+                href={`/entry/${format(day.date, 'yyyy-MM-dd')}/new`}
+                className="w-full"
+              >
+                <Button 
+                  className="bg-primary-dark hover:bg-primary-dark/90 text-white w-full" 
+                  size="sm"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Entry
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
         </CollapsibleContent>
       </Collapsible>
     </Card>
