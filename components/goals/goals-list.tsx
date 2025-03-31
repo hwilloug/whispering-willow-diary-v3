@@ -5,7 +5,7 @@ import { trpc } from '@/lib/trpc';
 import { Progress } from '../ui/progress';
 import { format } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
-import { ChevronDown, ChevronRight, CheckCircle2, Pencil, Trash2, Archive } from 'lucide-react';
+import { ChevronDown, ChevronRight, CheckCircle2, Pencil, Trash2, Archive, GripVertical } from 'lucide-react';
 import { AddGoalUpdate } from './add-goal-update';
 import { EditGoalDialog } from './edit-goal-dialog';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,8 @@ import {
   goalJournalEntries as GoalJournalEntry, 
   goalCategories as GoalCategory 
 } from '@/db/v3.schema';
+import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd';
+import { StrictModeDroppable } from './strict-mode-droppable';
 
 interface GoalWithRelations extends Omit<typeof Goal, 'subcategoryId'> {
   subcategoryId: string | null;
@@ -66,6 +68,12 @@ export default function GoalsList() {
   });
 
   const toggleMilestone = trpc.goals.toggleMilestone.useMutation({
+    onSuccess: () => {
+      utils.goals.list.invalidate();
+    }
+  });
+
+  const reorderMilestones = trpc.goals.reorderMilestones.useMutation({
     onSuccess: () => {
       utils.goals.list.invalidate();
     }
@@ -153,6 +161,25 @@ export default function GoalsList() {
     );
   };
   
+  const onDragEnd = (result: DropResult, goalId: string) => {
+    if (!result.destination) return;
+
+    const goal = goals?.find(g => g.id.toString() === goalId);
+    if (!goal?.milestones) return;
+
+    const items = Array.from(goal.milestones);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update positions
+    const updatedMilestones = items.map((item, index) => ({
+      id: item.id.toString(),
+      position: index
+    }));
+
+    reorderMilestones.mutate({ milestones: updatedMilestones });
+  };
+
   if (isLoading) {
     return <div>Loading goals...</div>;
   }
@@ -293,33 +320,59 @@ export default function GoalsList() {
                               {goal.milestones?.length > 0 && (
                                 <div>
                                   <h4 className="font-medium mb-3">Milestones</h4>
-                                  <div className="space-y-2">
-                                    {goal.milestones?.map((milestone: typeof GoalMilestone) => (
-                                    <div
-                                      key={milestone.id.toString()}
-                                      className="flex items-center gap-3 text-sm bg-primary-light p-2 rounded"
-                                    >
-                                      <button
-                                        onClick={() => toggleMilestone.mutate({ id: milestone.id.toString() })}
-                                        className="hover:scale-110 transition-transform"
-                                      >
-                                        <CheckCircle2 
-                                          className={`w-4 h-4 ${
-                                            milestone.isComplete 
-                                              ? 'text-green-400' 
-                                              : 'text-primary-dark/30 hover:text-primary-dark/50'
-                                          }`}
-                                        />
-                                      </button>
-                                      <span className={milestone.isComplete ? 'line-through opacity-50' : ''}>
-                                        {milestone.description.toString()}
-                                      </span>
-                                      <span className="opacity-70 ml-auto">
-                                        {milestone.dueDate ? format(new Date(milestone.dueDate.toString()), 'MMM d') : 'No date'}
-                                      </span>
-                                    </div>
-                                  ))}
-                                  </div>
+                                  <DragDropContext onDragEnd={(result) => onDragEnd(result, goal.id.toString())}>
+                                    <StrictModeDroppable droppableId={`milestones-${goal.id.toString()}`} type="MILESTONE">
+                                      {(provided) => (
+                                        <div 
+                                          {...provided.droppableProps}
+                                          ref={provided.innerRef}
+                                          className="space-y-2"
+                                        >
+                                          {goal.milestones.map((milestone, index) => (
+                                            <Draggable 
+                                              key={milestone.id.toString()} 
+                                              draggableId={milestone.id.toString()} 
+                                              index={index}
+                                            >
+                                              {(provided, snapshot) => (
+                                                <div
+                                                  ref={provided.innerRef}
+                                                  {...provided.draggableProps}
+                                                  style={{
+                                                    ...provided.draggableProps.style,
+                                                    transform: snapshot.isDragging 
+                                                      ? `translate(${parseInt(provided.draggableProps.style?.transform?.split('(')[1]?.split(',')[0] || '0') - 100}px, ${parseInt(provided.draggableProps.style?.transform?.split(',')[1] || '0') - 275}px)`
+                                                      : provided.draggableProps.style?.transform,
+                                                  }}
+                                                  className="flex items-center gap-3 text-sm p-2 rounded bg-primary-light"
+                                                >
+                                                  <div {...provided.dragHandleProps}>
+                                                    <GripVertical className="w-4 h-4 opacity-50 cursor-grab active:cursor-grabbing" />
+                                                  </div>
+                                                  <button
+                                                    onClick={() => toggleMilestone.mutate({ id: milestone.id.toString() })}
+                                                    className="hover:scale-110 transition-transform"
+                                                  >
+                                                    <CheckCircle2 
+                                                      className={`w-4 h-4 ${
+                                                        milestone.isComplete 
+                                                          ? 'text-green-400' 
+                                                          : 'text-primary-dark/30 hover:text-primary-dark/50'
+                                                      }`}
+                                                    />
+                                                  </button>
+                                                  <span className={milestone.isComplete ? 'line-through opacity-50' : ''}>
+                                                    {milestone.description.toString()}
+                                                  </span>
+                                                </div>
+                                              )}
+                                            </Draggable>
+                                          ))}
+                                          {provided.placeholder}
+                                        </div>
+                                      )}
+                                    </StrictModeDroppable>
+                                  </DragDropContext>
                                 </div>)}
 
                                 <div>
@@ -424,6 +477,11 @@ export default function GoalsList() {
             subcategoryId: goals.find(g => g.id.toString() === editingGoal)!.subcategoryId?.toString() ?? null,
             targetDate: goals.find(g => g.id.toString() === editingGoal)!.targetDate?.toString() ?? null,
             status: goals.find(g => g.id.toString() === editingGoal)!.status.toString(),
+            milestones: goals.find(g => g.id.toString() === editingGoal)!.milestones.map(m => ({
+              id: m.id.toString(),
+              description: m.description.toString(),
+              isComplete: !!m.isComplete
+            })),
           }}
           open={true}
           onOpenChange={(open) => !open && setEditingGoal(null)}

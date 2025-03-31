@@ -2,7 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { db } from '@/db';
 import { goals, goalMilestones, goalJournalEntries } from '@/db/v3.schema';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, and, notInArray } from 'drizzle-orm';
 
 export const goalsRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
@@ -15,7 +15,9 @@ export const goalsRouter = router({
             category: true,
           },
         },
-        milestones: true,
+        milestones: {
+          orderBy: (milestones, { asc }) => [asc(milestones.position)],
+        },
         journalEntries: {
           orderBy: (entries, { desc }) => [desc(entries.entryDate)],
         },
@@ -73,7 +75,6 @@ export const goalsRouter = router({
       targetDate: z.string(),
       milestones: z.array(z.object({
         description: z.string(),
-        dueDate: z.string(),
       }))
     }))
     .mutation(async ({ ctx, input }) => {
@@ -91,10 +92,10 @@ export const goalsRouter = router({
         if (milestones.length > 0) {
           await tx.insert(goalMilestones)
             .values(
-              milestones.map(milestone => ({
+              milestones.map((milestone, index) => ({
                 goalId: goal.id,
                 description: milestone.description,
-                dueDate: milestone.dueDate,
+                position: index,
               }))
             );
         }
@@ -139,19 +140,55 @@ export const goalsRouter = router({
       id: z.string(),
       title: z.string(),
       description: z.string(),
-      subcategoryId: z.string(),
+      subcategoryId: z.string().optional(),
       targetDate: z.string(),
       status: z.enum(['active', 'completed', 'on_hold', 'archived']),
+      milestones: z.array(z.object({
+        id: z.string().optional(),
+        description: z.string(),
+      })).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const { id, ...updateData } = input;
-      return await db.update(goals)
-        .set({
-          ...updateData,
-          updatedAt: new Date(),
-        })
-        .where(eq(goals.id, id))
-        .returning();
+      const { id, milestones, ...updateData } = input;
+      
+      return await db.transaction(async (tx) => {
+        // Update goal
+        const [goal] = await tx.update(goals)
+          .set({
+            ...updateData,
+            updatedAt: new Date(),
+          })
+          .where(eq(goals.id, id))
+          .returning();
+
+        // Update milestones if provided
+        if (milestones) {
+          // Delete milestones that are no longer in the list
+          const milestoneIds = milestones.filter(m => m.id).map(m => m.id!);
+          await tx.delete(goalMilestones)
+            .where(and(
+              eq(goalMilestones.goalId, id),
+              notInArray(goalMilestones.id, milestoneIds)
+            ));
+
+          // Update or insert milestones
+          for (const milestone of milestones) {
+            if (milestone.id) {
+              await tx.update(goalMilestones)
+                .set({ description: milestone.description })
+                .where(eq(goalMilestones.id, milestone.id));
+            } else {
+              await tx.insert(goalMilestones)
+                .values({
+                  goalId: id,
+                  description: milestone.description,
+                });
+            }
+          }
+        }
+
+        return goal;
+      });
     }),
 
   delete: protectedProcedure
@@ -207,5 +244,22 @@ export const goalsRouter = router({
         .where(eq(goalMilestones.id, input.id));
 
       return { success: true };
+    }),
+
+  reorderMilestones: protectedProcedure
+    .input(z.object({
+      milestones: z.array(z.object({
+        id: z.string(),
+        position: z.number()
+      }))
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return await db.transaction(async (tx) => {
+        for (const { id, position } of input.milestones) {
+          await tx.update(goalMilestones)
+            .set({ position })
+            .where(eq(goalMilestones.id, id));
+        }
+      });
     }),
 }); 

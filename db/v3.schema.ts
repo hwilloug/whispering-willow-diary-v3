@@ -122,8 +122,8 @@ export const goalMilestones = v3.table('goal_milestones', {
   id: uuid('id').defaultRandom().primaryKey(),
   goalId: uuid('goal_id').notNull().references(() => goals.id, { onDelete: 'cascade' }),
   description: text('description').notNull(),
-  dueDate: date('due_date'),
   isComplete: boolean('is_complete').default(false).notNull(),
+  position: integer('position').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
