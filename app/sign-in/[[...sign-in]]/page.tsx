@@ -22,7 +22,7 @@ export default function SignInPage() {
               identityPreviewEditButton: 'text-primary hover:text-primary-dark',
             },
           }}
-          forceRedirectUrl="/dashboard"
+          fallbackRedirectUrl="/onboarding"
         />
       </div>
     </div>

@@ -18,107 +18,153 @@ interface SuggestionListProps {
   selectedCategory?: string;
   onCategoryChange?: (category: string) => void;
   onAdd?: (item: {symptom: string, category: string}) => void;
+  groupByCategory?: boolean;
+  groupedItems?: Array<{category: string, items: string[]}>;
 }
 
-export function SuggestionList({ 
-  title, 
-  description, 
-  items, 
+export function SuggestionList({
+  title,
+  description,
+  items,
   onUpdate,
   categories,
   selectedCategory,
   onCategoryChange,
-  onAdd
+  onAdd,
+  groupByCategory,
+  groupedItems
 }: SuggestionListProps) {
   const [newItem, setNewItem] = useState('');
+  const [category, setCategory] = useState(selectedCategory || categories?.[0] || 'Other');
 
-  const addItem = () => {
-    if (newItem.trim() && !items.includes(newItem.trim())) {
-      const itemToAdd = {
-        symptom: newItem.trim(),
-        category: selectedCategory || 'Other'
-      };
-      if (onAdd) {
-        onAdd(itemToAdd);
+  const handleAdd = () => {
+    if (newItem.trim()) {
+      if (onAdd && categories) {
+        onAdd({ symptom: newItem, category });
       } else {
-        onUpdate([...items, itemToAdd.symptom]);
+        onUpdate([...items, newItem]);
       }
       setNewItem('');
     }
   };
 
-  const removeItem = (item: string) => {
+  const handleRemove = (item: string) => {
     onUpdate(items.filter(i => i !== item));
   };
 
-  const isHeaderItem = (item: string) => {
-    return item.startsWith('#')
-  };
-
-  return (
-    <Card className="card-glass">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          {items.map((item) => (
-            isHeaderItem(item) ? (
-              <div key={item} className="w-full text-lg font-semibold mt-4 mb-2 text-primary-dark">
-                {item.replace('#', '').trim()}
-              </div>
-            ) : (
-              <Badge
-                key={item}
-                variant="secondary"
-                className="bg-primary-dark text-white hover:bg-primary"
-              >
-                {item}
-                <X
-                  className="ml-2 h-3 w-3 cursor-pointer"
-                  onClick={() => removeItem(item)}
-                />
-              </Badge>
-            )
-          ))}
-        </div>
-        <div className="flex flex-col gap-2">
+  if (groupByCategory && groupedItems) {
+    return (
+      <Card className="card-glass">
+        <CardHeader className="border-b border-primary-light/20">
+          <CardTitle className="text-primary-dark text-xl">{title}</CardTitle>
+          <CardDescription className="text-primary-dark/80">{description}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6 p-6">
           <div className="flex gap-2">
             <Input
-              placeholder="Add new item"
+              placeholder="Add new symptom..."
               value={newItem}
               onChange={(e) => setNewItem(e.target.value)}
-              className="bg-primary-light"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addItem();
-                }
-              }}
+              onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
+              className="input-field"
             />
-            {categories && (
-              <Select value={selectedCategory} onValueChange={onCategoryChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            <Button
-              onClick={addItem}
-              className="bg-primary hover:bg-primary-dark text-white"
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="w-[180px] bg-white/80 border-primary-light/30">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories?.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button 
+              onClick={handleAdd}
+              className="bg-secondary hover:bg-secondary-light text-white"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
+
+          <div className="space-y-6">
+            {groupedItems.map(({ category, items }) => (
+              <div key={category} className="space-y-3">
+                <h3 className="text-lg font-semibold text-primary-dark border-b border-primary-light/20 pb-2">
+                  {category}
+                </h3>
+                <div className="flex flex-wrap gap-2 pl-2">
+                  {items.map((item) => (
+                    <Badge
+                      key={item}
+                      variant="secondary"
+                      className="px-3 py-1 bg-secondary-light hover:bg-secondary text-primary-dark hover:text-white transition-colors"
+                    >
+                      {item}
+                      <X
+                        className="ml-2 h-3 w-3 hover:text-red-400"
+                        onClick={() => handleRemove(item)}
+                      />
+                    </Badge>
+                  ))}
+                  {items.length === 0 && (
+                    <span className="text-primary-dark/50 text-sm italic">
+                      No items added yet
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Original non-grouped view with improved styling
+  return (
+    <Card className="card-glass">
+      <CardHeader className="border-b border-primary-light/20">
+        <CardTitle className="text-primary-dark text-xl">{title}</CardTitle>
+        <CardDescription className="text-primary-dark/80">{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4 p-6">
+        <div className="flex gap-2">
+          <Input
+            placeholder={`Add new ${title.toLowerCase()}...`}
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
+            className="input-field"
+          />
+          <Button 
+            onClick={handleAdd}
+            className="bg-secondary hover:bg-secondary-light text-white"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {items.map((item) => (
+            <Badge
+              key={item}
+              variant="secondary"
+              className="px-3 py-1 bg-secondary-light/20 hover:bg-secondary text-primary-dark hover:text-white transition-colors"
+            >
+              {item}
+              <X
+                className="ml-2 h-3 w-3 hover:text-red-400"
+                onClick={() => handleRemove(item)}
+              />
+            </Badge>
+          ))}
+          {items.length === 0 && (
+            <span className="text-primary-dark/50 text-sm italic">
+              No items added yet
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>
