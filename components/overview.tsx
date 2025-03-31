@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { trpc } from '@/lib/trpc';
 import { format, parse, subDays } from 'date-fns';
 import { useMemo } from 'react';
+import NoDataAvailable from './no-data-available';
 
 // Add this constant at the top of the file, before the Overview component
 const COLORS = [
@@ -111,6 +112,19 @@ export function Overview() {
     });
     return Array.from(substanceSet);
   }, [weekData]);
+
+  if (queries.every(query => query.data?.length === 0)) {
+    return <div className="grid grid-cols-1 gap-4">
+      <Card className="card-glass">
+        <CardHeader>
+          <CardTitle>Weekly Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <NoDataAvailable />
+        </CardContent>
+      </Card>
+    </div>
+  }
 
   return (
     <div className="grid grid-cols-1 gap-4">

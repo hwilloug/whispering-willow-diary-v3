@@ -32,6 +32,7 @@ import { DateRange } from 'react-day-picker';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
+import NoDataAvailable from './no-data-available';
 
 const COLORS = ['#436228', '#673AB7', '#214C14', '#9575CD', '#E0F0BB', '#4A148C'];
 
@@ -269,6 +270,10 @@ export function Analytics({ filter }: { filter: Filter }) {
       }))
       .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
   }, [entriesData]);
+
+  if (entriesData?.length === 0) {
+    return <div className="h-full card-glass p-8 rounded-lg"><NoDataAvailable /></div>
+  }
 
   return (
     <div className="grid gap-4">

@@ -187,11 +187,9 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
               </div>
-              {stats?.currentStreak && stats.currentStreak > 0 && (
-                <div className="h-full">
-                  <StreakIncentive currentStreak={stats.currentStreak} />
-                </div>
-              )}
+              <div className="h-full">
+                <StreakIncentive currentStreak={stats?.currentStreak || 0} />
+              </div>
             </div>
             <Overview />
           </TabsContent>

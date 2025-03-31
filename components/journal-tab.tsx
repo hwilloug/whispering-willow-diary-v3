@@ -45,6 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import NoDataAvailable from './no-data-available';
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type Entry = RouterOutput['journal']['getAll']['entries'][number] & {
@@ -129,6 +130,10 @@ export function JournalTab({ selectedDates }: JournalTabProps) {
 
     return entries;
   }, [data?.entries, showEmptyDays]);
+
+  if (data?.entries.length === 0) {
+    return <div className="h-full card-glass p-8 rounded-lg"><NoDataAvailable /></div>
+  }
 
   return (
     <div className="space-y-4">

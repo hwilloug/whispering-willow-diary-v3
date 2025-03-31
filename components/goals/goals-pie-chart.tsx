@@ -1,5 +1,6 @@
 import { trpc } from '@/lib/trpc';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import NoDataAvailable from '../no-data-available';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -18,6 +19,15 @@ export function GoalsPieChart() {
     name,
     value
   }));
+
+  if (goals?.length === 0) {
+    return <div className="h-[200px] w-full">
+      <h3 className="text-sm font-medium mb-2">Goals by Category</h3>
+      <div className="flex items-center justify-center h-full">
+        <p className="text-sm text-muted-foreground">No goals found</p>
+      </div>
+    </div>
+  }
 
   return (
     <div className="h-[200px] w-full">

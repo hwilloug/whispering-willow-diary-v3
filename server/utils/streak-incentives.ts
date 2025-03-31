@@ -6,6 +6,11 @@ export interface StreakIncentive {
 
 export const streakIncentives: StreakIncentive[] = [
   {
+    threshold: 0,
+    message: "Create an entry to start your streak!",
+    badge: ""
+  },
+  {
     threshold: 3,
     message: "You're building a great habit! Keep it up!",
     badge: "🌱 Seedling"

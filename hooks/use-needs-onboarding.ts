@@ -13,7 +13,7 @@ export function useNeedsOnboarding() {
   useEffect(() => {
     if (isLoaded && isSignedIn && settings) {
       // If user has no settings configured, they need onboarding
-      const needsOnboarding = !settings.suggestedFeelings?.length;
+      const needsOnboarding = !settings.categories?.length && !settings.suggestedSymptoms?.length;
       
       if (window.location.pathname === '/onboarding' && !needsOnboarding) {
         router.replace('/dashboard');
@@ -25,6 +25,6 @@ export function useNeedsOnboarding() {
 
   return {
     isLoading: !isLoaded || !settings,
-    needsOnboarding: !settings?.suggestedFeelings?.length
+    needsOnboarding: !settings?.categories?.length && !settings?.suggestedSymptoms?.length
   };
 } 
