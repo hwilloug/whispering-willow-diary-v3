@@ -91,11 +91,11 @@ export default function OnboardingPage() {
                     <div className="card-glass p-6 text-primary-dark">
                       <h4 className="text-xl font-bold mb-2">What you'll set up:</h4>
                       <ul className="list-disc list-inside space-y-2">
-                        <li>Customize feelings to track</li>
-                        <li>Add common activities</li>
-                        <li>Define symptoms to monitor</li>
-                        <li>Set up substance tracking</li>
-                        <li>Personalize categories</li>
+                        <li>Define mental health categories</li>
+                        <li>Set up symptoms to monitor</li>
+                        <li>Customize feelings to track (optional)</li>
+                        <li>Add common activities (optional)</li>
+                        <li>Set up substance tracking (optional)</li>
                       </ul>
                     </div>
                     <div className="card-glass p-6 text-primary-dark">
@@ -113,37 +113,6 @@ export default function OnboardingPage() {
 
               {activeStepIndex === 1 && (
                 <div className="space-y-4">
-                  <h3 className="text-2xl font-bold text-primary-dark">Feelings</h3>
-                  <p className="text-primary-dark">
-                    Customize the feelings you want to track in your journal entries. 
-                    We've added some common ones to start with.
-                  </p>
-                  <SuggestionList
-                    title="Feelings"
-                    description="Add or remove feelings you want to track"
-                    items={feelings}
-                    onUpdate={setFeelings}
-                  />
-                </div>
-              )}
-
-              {activeStepIndex === 2 && (
-                <div className="space-y-4">
-                  <h3 className="text-2xl font-bold text-primary-dark">Activities</h3>
-                  <p className="text-primary-dark">
-                    Add activities you commonly engage in. This helps track what affects your mood.
-                  </p>
-                  <SuggestionList
-                    title="Activities"
-                    description="Add or remove common activities"
-                    items={activities}
-                    onUpdate={setActivities}
-                  />
-                </div>
-              )}
-
-              {activeStepIndex === 3 && (
-                <div className="space-y-4">
                   <h3 className="text-2xl font-bold text-primary-dark">Categories</h3>
                   <p className="text-primary-dark">
                     Customize the mental health categories you want to track.
@@ -157,7 +126,7 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {activeStepIndex === 4 && (
+              {activeStepIndex === 2 && (
                 <div className="space-y-4">
                   <h3 className="text-2xl font-bold text-primary-dark">Symptoms</h3>
                   <p className="text-primary-dark">
@@ -185,6 +154,36 @@ export default function OnboardingPage() {
                       }));
                       setSymptoms(newSymptoms);
                     }}
+                  />
+                </div>
+              )}
+
+              {activeStepIndex === 3 && (
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-bold text-primary-dark">Feelings</h3>
+                  <p className="text-primary-dark">
+                    Customize the feelings you want to track in your journal entries. (optional)
+                  </p>
+                  <SuggestionList
+                    title="Feelings"
+                    description="Add or remove feelings you want to track"
+                    items={feelings}
+                    onUpdate={setFeelings}
+                  />
+                </div>
+              )}
+
+              {activeStepIndex === 4 && (
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-bold text-primary-dark">Activities</h3>
+                  <p className="text-primary-dark">
+                    Add activities you commonly engage in. (optional) This helps track what affects your mood.
+                  </p>
+                  <SuggestionList
+                    title="Activities"
+                    description="Add or remove common activities"
+                    items={activities}
+                    onUpdate={setActivities}
                   />
                 </div>
               )}
