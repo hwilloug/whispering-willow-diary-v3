@@ -5,7 +5,7 @@ import { trpc } from '@/lib/trpc';
 import { Progress } from '../ui/progress';
 import { format } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
-import { ChevronDown, ChevronRight, CheckCircle2, Pencil, Trash2, Archive, GripVertical } from 'lucide-react';
+import { ChevronDown, ChevronRight, CheckCircle2, Pencil, Trash2, Archive, GripVertical, Plus } from 'lucide-react';
 import { AddGoalUpdate } from './add-goal-update';
 import { EditGoalDialog } from './edit-goal-dialog';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ import {
 } from '@/db/v3.schema';
 import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd';
 import { StrictModeDroppable } from './strict-mode-droppable';
+import { Input } from '@/components/ui/input';
 
 interface GoalWithRelations extends Omit<typeof Goal, 'subcategoryId'> {
   subcategoryId: string | null;
@@ -74,6 +75,12 @@ export default function GoalsList() {
   });
 
   const reorderMilestones = trpc.goals.reorderMilestones.useMutation({
+    onSuccess: () => {
+      utils.goals.list.invalidate();
+    }
+  });
+
+  const updateGoal = trpc.goals.update.useMutation({
     onSuccess: () => {
       utils.goals.list.invalidate();
     }
@@ -317,7 +324,6 @@ export default function GoalsList() {
                         <CollapsibleContent>
                           <div className="px-4 pb-4 border-t border-white/10 mt-2 pt-4">
                             <div className="space-y-6">
-                              {goal.milestones?.length > 0 && (
                                 <div>
                                   <h4 className="font-medium mb-3">Milestones</h4>
                                   <DragDropContext onDragEnd={(result) => onDragEnd(result, goal.id.toString())}>
@@ -373,54 +379,113 @@ export default function GoalsList() {
                                       )}
                                     </StrictModeDroppable>
                                   </DragDropContext>
-                                </div>)}
+                                </div>
+                              <div className="mt-4">
+                                <Collapsible>
+                                  <CollapsibleTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full flex items-center gap-2 bg-white/5"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                      Add Milestone
+                                    </Button>
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent className="mt-4 p-3 bg-white/5 rounded-lg">
+                                    <form
+                                      onSubmit={(e) => {
+                                        e.preventDefault();
+                                        const form = e.target as HTMLFormElement;
+                                        const description = (form.elements.namedItem('description') as HTMLInputElement).value;
+                                        
+                                        updateGoal.mutate({
+                                          id: goal.id.toString(),
+                                          title: goal.title.toString(),
+                                          description: goal.description?.toString() ?? '',
+                                          subcategoryId: goal.subcategoryId?.toString() ?? '',
+                                          targetDate: goal.targetDate?.toString() ?? '',
+                                          status: goal.status.toString() as any,
+                                          milestones: [
+                                            ...goal.milestones.map(m => ({
+                                              id: m.id.toString(),
+                                              description: m.description.toString(),
+                                            })),
+                                            { description }
+                                          ],
+                                        });
+                                        
+                                        form.reset();
+                                      }}
+                                      className="space-y-4"
+                                    >
+                                      <Input
+                                        name="description"
+                                        placeholder="Milestone description"
+                                        required
+                                        className="bg-primary-light border-none"
+                                      />
+                                      <div className="flex justify-end gap-2">
+                                        <CollapsibleTrigger asChild>
+                                          <Button variant="ghost" size="sm">
+                                            Cancel
+                                          </Button>
+                                        </CollapsibleTrigger>
+                                        <Button size="sm" type="submit">
+                                          Add
+                                        </Button>
+                                      </div>
+                                    </form>
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              </div>
 
-                                <div>
-                                  <div className="flex justify-between items-center mb-3">
-                                    <h4 className="font-medium">Recent Updates</h4>
-                                  </div>
+                              <div>
+                                <div className="flex justify-between items-center mb-3">
+                                  <h4 className="font-medium">Recent Updates</h4>
+                                </div>
 
-                                  <div className="space-y-3 mt-4">
-                                    {goal.journalEntries?.map((entry: typeof GoalJournalEntry) => (
-                                      <div
-                                        key={entry.id.toString()}
-                                        className="text-sm bg-primary-light/50 rounded-lg p-3 space-y-2"
-                                      >
-                                        <div className="flex justify-between items-start">
-                                          <div>
-                                            <span className="text-primary-dark/70">
-                                              {format(new Date(entry.entryDate.toString()), 'MMM d, yyyy')}
+                                <div className="space-y-3 mt-4">
+                                  {goal.journalEntries?.map((entry: typeof GoalJournalEntry) => (
+                                    <div
+                                      key={entry.id.toString()}
+                                      className="text-sm bg-primary-light/50 rounded-lg p-3 space-y-2"
+                                    >
+                                      <div className="flex justify-between items-start">
+                                        <div>
+                                          <span className="text-primary-dark/70">
+                                            {format(new Date(entry.entryDate.toString()), 'MMM d, yyyy')}
+                                          </span>
+                                          <div className="flex items-center gap-2 mt-1">
+                                            <div className="h-2 w-2 rounded-full bg-primary-dark/30" />
+                                            <span className="font-medium">
+                                              Progress updated to {entry.progressUpdate.toString()}%
                                             </span>
-                                            <div className="flex items-center gap-2 mt-1">
-                                              <div className="h-2 w-2 rounded-full bg-primary-dark/30" />
-                                              <span className="font-medium">
-                                                Progress updated to {entry.progressUpdate.toString()}%
-                                              </span>
-                                            </div>
                                           </div>
-                                          {entry.progressUpdate && (
-                                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                              Number(entry.progressUpdate) === 100 
-                                                ? 'bg-green-100 text-green-800' 
-                                                : 'bg-primary-dark/10 text-primary-dark/70'
-                                            }`}>
-                                              {Number(entry.progressUpdate) === 100 ? 'Completed' : `${entry.progressUpdate}%`}
-                                            </span>
-                                          )}
                                         </div>
-                                        {entry.notes && (
-                                          <p className="text-primary-dark/80 mt-2 whitespace-pre-wrap">
-                                            {entry.notes.toString()}
-                                          </p>
+                                        {entry.progressUpdate && (
+                                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                            Number(entry.progressUpdate) === 100 
+                                              ? 'bg-green-100 text-green-800' 
+                                              : 'bg-primary-dark/10 text-primary-dark/70'
+                                          }`}>
+                                            {Number(entry.progressUpdate) === 100 ? 'Completed' : `${entry.progressUpdate}%`}
+                                          </span>
                                         )}
                                       </div>
-                                    ))}
-                                  </div>
+                                      {entry.notes && (
+                                        <p className="text-primary-dark/80 mt-2 whitespace-pre-wrap">
+                                          {entry.notes.toString()}
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))}
                                 </div>
-                                <AddGoalUpdate 
-                                    goalId={goal.id.toString()} 
-                                    currentProgress={Number(goal.percentComplete)} 
-                                  />
+                              </div>
+                              <AddGoalUpdate 
+                                  goalId={goal.id.toString()} 
+                                  currentProgress={Number(goal.percentComplete)} 
+                                />
                             </div>
                           </div>
                         </CollapsibleContent>
