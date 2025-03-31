@@ -35,6 +35,16 @@ import { Switch } from './ui/switch';
 import EntryTags from './journal/entry-tags';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from "rehype-sanitize";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type Entry = RouterOutput['journal']['getAll']['entries'][number] & {
@@ -56,8 +66,15 @@ export function JournalTab({ selectedDates }: JournalTabProps) {
 
   const [page, setPage] = useState(1);
   const [showEmptyDays, setShowEmptyDays] = useState(false)
+  const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
 
   const { data } = trpc.journal.getAll.useQuery({ searchQuery: searchQuery, page, limit: 10 });
+  const utils = trpc.useContext();
+  const { mutate: deleteEntry } = trpc.journal.delete.useMutation({
+    onSuccess: () => {
+      utils.journal.getAll.invalidate();
+    }
+  });
   const groupedEntries = useMemo(() => {
     if (!data?.entries) return [];
     
@@ -136,16 +153,51 @@ export function JournalTab({ selectedDates }: JournalTabProps) {
 
       <div className="grid gap-4">
         {groupedEntries.map((day) => (
-          <DayEntries day={day} toggleDay={() => {}} />
+          <DayEntries day={day} toggleDay={() => {}} onDeleteEntry={(id) => setEntryToDelete(id)} />
         ))}
       </div>
 
       <Pagination page={page} setPage={setPage} totalPages={data?.pagination.totalPages || 1} />
+
+      <AlertDialog open={!!entryToDelete} onOpenChange={() => setEntryToDelete(null)}>
+        <AlertDialogContent className="bg-primary-light border-primary-dark">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-primary-dark">Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              This action cannot be undone. This will permanently delete your journal entry.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-muted hover:bg-muted/80 text-primary-dark border-primary-dark/20">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (entryToDelete) {
+                  deleteEntry(entryToDelete);
+                  setEntryToDelete(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-none"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
-const DayEntries = ({day, toggleDay}: {day: DayEntry, toggleDay: (date: Date) => void}) => {
+const DayEntries = ({
+  day,
+  toggleDay,
+  onDeleteEntry
+}: {
+  day: DayEntry;
+  toggleDay: (date: Date) => void;
+  onDeleteEntry: (id: string) => void;
+}) => {
   return (
     <Card key={day.date.toISOString()} className="card-glass">
       <Collapsible open={day.expanded}>
@@ -174,7 +226,12 @@ const DayEntries = ({day, toggleDay}: {day: DayEntry, toggleDay: (date: Date) =>
         <CollapsibleContent>
           <CardContent style={{ padding: 0 }}>
             {day.entries.map((entry, index) => (
-              <EntryCard key={index} entry={entry} day={day} />
+              <EntryCard 
+                key={index} 
+                entry={entry} 
+                day={day}
+                onDelete={onDeleteEntry}
+              />
             ))}
             <div className="flex justify-center px-2 pb-2">
               <Link
@@ -197,7 +254,15 @@ const DayEntries = ({day, toggleDay}: {day: DayEntry, toggleDay: (date: Date) =>
   )
 }
 
-const EntryCard = ({entry, day}: {entry: Entry, day: DayEntry}) => {
+const EntryCard = ({
+  entry,
+  day,
+  onDelete
+}: {
+  entry: Entry;
+  day: DayEntry;
+  onDelete: (id: string) => void;
+}) => {
   return (
     <div
     className="bg-primary-light border m-2 py-2 px-4 rounded-lg hover:bg-muted/50"
@@ -217,7 +282,11 @@ const EntryCard = ({entry, day}: {entry: Entry, day: DayEntry}) => {
             <Edit2 className="h-4 w-4" />
           </Button>
         </Link>
-        <Button variant="ghost" size="icon">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={() => onDelete(entry.id)}
+        >
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
