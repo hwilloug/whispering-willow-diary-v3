@@ -46,7 +46,7 @@ export default async function Home() {
                 <div className="w-full h-full rounded-2xl overflow-hidden card-glass">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary-light/20 to-secondary-light/20" />
                   <Image
-                    src="/placeholder-journal.jpg"
+                    src="/screenshot.jpg"
                     alt="Digital journal illustration"
                     fill
                     className="object-cover mix-blend-overlay"
