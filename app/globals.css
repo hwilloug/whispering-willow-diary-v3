@@ -72,6 +72,14 @@
                   1px  1px 0 #000;
   }
 
+  .text-outline-light {
+    text-shadow: 
+      1px 1px 0 rgba(255, 255, 255, 0.4),
+      -1px -1px 0 rgba(255, 255, 255, 0.4),
+      1px -1px 0 rgba(255, 255, 255, 0.4),
+      -1px 1px 0 rgba(255, 255, 255, 0.4);
+  }
+
   .card-glass-hover {
     @apply bg-primary-light/50 transition-all duration-200;
   }
